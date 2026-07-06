@@ -31,7 +31,7 @@ specification for all commit messages. A consistent history keeps changelogs and
 | `refactor` | Code change that neither fixes a bug nor adds a feature        | –       |
 | `perf`     | A performance improvement                                      | PATCH   |
 | `test`     | Adding or correcting tests                                     | –       |
-| `build`    | Build system or dependencies (npm, Expo, Go modules)          | –       |
+| `build`    | Build system or dependencies (npm, Expo, Deno)                | –       |
 | `ci`       | CI configuration and scripts                                   | –       |
 | `chore`    | Other changes that don't touch src or tests                   | –       |
 | `revert`   | Reverts a previous commit                                      | –       |
@@ -41,7 +41,7 @@ specification for all commit messages. A consistent history keeps changelogs and
 Scope is optional but encouraged. Use the area of the codebase affected:
 
 - `mobile` — the Expo app (`apps/mobile`)
-- `api` — the Go service (`apps/api`, future)
+- `functions` — Supabase Edge Functions (`supabase/functions/`, future)
 - `db` — Supabase migrations / schema / RLS (`supabase/`)
 - `auth`, `realtime`, `list`, `shops`, `household` — finer-grained features
 
@@ -57,9 +57,9 @@ Breaking changes map to a **MAJOR** version bump and must be signalled in one of
    ```
 2. A footer (uppercase token, may be `BREAKING CHANGE` or `BREAKING-CHANGE`):
    ```
-   refactor(api): drop legacy budget endpoint
+   refactor(db): drop legacy budget view
 
-   BREAKING CHANGE: /v1/budget is removed; use /v2/budgets instead.
+   BREAKING CHANGE: the monthly_budget_totals view is removed; use budget_summaries instead.
    ```
 
 You may use both. When using `!`, a `BREAKING CHANGE:` footer is optional if the
@@ -99,7 +99,7 @@ fix(realtime): receive DELETE events by setting replica identity full
 docs: document local Supabase setup
 refactor(household): route membership writes through SECURITY DEFINER functions
 chore(mobile): bump expo to SDK 56
-feat(api)!: require household JWT on all budget routes
+feat(functions)!: require JWT on the import endpoint
 ```
 
 ## Pull requests

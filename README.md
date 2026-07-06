@@ -12,15 +12,16 @@ Expo / React Native app (apps/mobile)
   └── Supabase Realtime    — live shopping-list / shop / catalog updates
 ```
 
-There is **no custom backend yet** — the mobile app talks directly to Supabase and
-Row-Level Security is the data boundary. A Go API (`apps/api`, placeholder) will be
-added for the budgeting iteration, where it owns heavier business logic.
+There is **no custom backend** — the mobile app talks directly to Supabase and
+Row-Level Security is the data boundary. Future server-side needs are met
+Postgres-first (views, RPCs, `pg_cron`); Supabase Edge Functions
+(`supabase/functions/`) are reserved for work that needs secrets or third-party
+API calls.
 
 ## Layout
 
 ```
 apps/mobile/        Expo app (Expo Router, TypeScript)
-apps/api/           Go API — added later (budgeting)
 supabase/
   migrations/       0001 schema · 0002 RLS + grants + functions · 0003 realtime
   tests/            rls_smoke_test.sql — RLS / sharing / invite assertions
@@ -84,6 +85,8 @@ npx supabase gen types typescript --local > types/database.ts
 
 ## Roadmap → budgeting
 
-- Stand up `apps/api` (Go) behind the same Supabase JWT (verify via JWKS).
-- Add a budgeting schema (accounts, transactions, categories, budgets); the Go API owns
-  aggregation/reporting, while the mobile app keeps using Supabase for auth + shopping list.
+- Add a budgeting schema (accounts, transactions, categories, budgets) as migrations with
+  RLS, using the same `is_household_member(hid)` pattern.
+- Aggregation/reporting as SQL views + RPCs; recurring transactions via `pg_cron`.
+- Introduce Supabase Edge Functions only when a feature needs secrets or external APIs
+  (e.g. bank import, notifications).

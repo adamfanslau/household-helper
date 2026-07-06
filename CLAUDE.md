@@ -6,14 +6,18 @@ and [CONTRIBUTING.md](CONTRIBUTING.md) (commit conventions).
 ## What this is
 
 Household Helper — Expo/React Native app on a **Supabase-only** backend (Postgres + Auth +
-Realtime). Iteration 1 is a shared shopping list; budgeting (a Go API in `apps/api`) comes
-later. The mobile app talks **directly** to Supabase; there is no server of our own in the
-request path yet. That makes the database the security boundary — treat it as such.
+Realtime). Iteration 1 is a shared shopping list; budgeting comes later and stays
+Supabase-first. The mobile app talks **directly** to Supabase; there is no server of our
+own in the request path, and none is planned by default — server-shaped work goes
+Postgres-first (views, RPCs, `pg_cron`), with Supabase Edge Functions reserved for
+features that need secrets or external API calls. The database is the security
+boundary — treat it as such.
 
 ## Project standards
 
-- **Language/stack**: TypeScript (strict) in `apps/mobile`, SQL migrations in `supabase/`,
-  Go (future) in `apps/api`. Match the surrounding style; keep comments sparse and about *why*.
+- **Language/stack**: TypeScript (strict) in `apps/mobile`, SQL migrations in `supabase/`;
+  any future server code is Deno/TypeScript Edge Functions in `supabase/functions/`. Match
+  the surrounding style; keep comments sparse and about *why*.
 - **Routing**: Expo Router (file-based) under `apps/mobile/app`. Auth/household gating lives
   in the layout files (`app/index.tsx`, `app/(app)/_layout.tsx`).
 - **Data access**: go through the typed Supabase client in [lib/supabase.ts](apps/mobile/lib/supabase.ts).
@@ -49,8 +53,11 @@ app and is assumed public — never rely on client code to enforce who-can-see-w
   enums-as-check). Client-side checks are UX only, never security.
 - **Realtime respects RLS** — subscriptions only deliver rows the user may read. Don't broaden a
   publication assuming the client will filter.
-- **Future Go API** must verify the Supabase JWT against the JWKS endpoint and re-apply
-  authorization server-side; never trust a client-supplied user/household id.
+- **Future Edge Functions** must derive the caller from the request's Supabase JWT (via the
+  auth context / `getUser`), never from a client-supplied user/household id, and re-check
+  authorization server-side — or query as the user so RLS applies. The `service_role` key
+  lives only in function secrets, never the client; a function using it bypasses RLS and
+  MUST do its own authorization checks.
 
 ## Secrets & environment handling
 
