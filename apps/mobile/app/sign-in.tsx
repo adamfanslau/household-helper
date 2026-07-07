@@ -11,14 +11,19 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Redirect } from 'expo-router';
 import { useAuth } from '../lib/auth';
 import { colors, radius, spacing } from '../lib/theme';
 
 export default function SignIn() {
-  const { signInWithGoogle, signInWithMagicLink } = useAuth();
+  const { session, signInWithGoogle, signInWithMagicLink } = useAuth();
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState<null | 'google' | 'magic'>(null);
   const [sent, setSent] = useState(false);
+
+  // Nothing else navigates away from this screen once a session appears
+  // (e.g. after the OAuth deep-link callback, or instant mock sign-in).
+  if (session) return <Redirect href="/" />;
 
   async function handleGoogle() {
     try {

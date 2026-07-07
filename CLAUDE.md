@@ -23,6 +23,10 @@ boundary — treat it as such.
 - **Data access**: go through the typed Supabase client in [lib/supabase.ts](apps/mobile/lib/supabase.ts).
   Keep DB row types in [types/database.ts](apps/mobile/types/database.ts) in sync with migrations
   (`npx supabase gen types typescript --local > types/database.ts` after schema changes).
+- **Mock mode**: `npm run ios:mock` / `android:mock` runs the app against an in-memory fake
+  client (`apps/mobile/lib/mock/`) behind the `lib/supabase.ts` seam — dev-only (`__DEV__` +
+  `EXPO_PUBLIC_USE_MOCK`), never widen the real client path for it. When app code starts using
+  a new Supabase call shape, extend `lib/mock/supabaseMock.ts` to match.
 - **Schema changes are migrations only.** Add a new `supabase/migrations/NNNN_*.sql`; never
   edit an already-applied migration. Verify with `npx supabase db reset`.
 - **Commits**: Conventional Commits 1.0.0 (see CONTRIBUTING.md).

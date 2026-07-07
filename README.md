@@ -76,6 +76,24 @@ Notes:
   `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` / `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`
   in your shell before `supabase start` (see `supabase/config.toml`).
 
+### Mock mode (no backend)
+
+For UI work in the emulators without Supabase or Docker running at all:
+
+```bash
+cd apps/mobile
+npm run ios:mock            # or: npm run android:mock
+```
+
+This swaps the Supabase client for an in-memory fake (`lib/mock/`) — you boot
+pre-signed-in as `dev@mock.local` with a seeded household, shops, catalog, and
+shopping list. Realtime-style updates work within the app; data resets on a full
+reload. Seeded invite codes: `MOCK1234` (your household), `JOIN5678` (a second
+household, for testing the join flow). Mock mode is dev-only (`__DEV__`-gated)
+and stripped from release builds. The scripts pass `--clear` because Metro
+caches inlined `EXPO_PUBLIC_*` values — start once with `--clear` when switching
+back to real mode too (`npx expo start --ios --clear`).
+
 ## Regenerating DB types
 
 ```bash

@@ -27,7 +27,9 @@
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
+    "android:mock": "EXPO_PUBLIC_USE_MOCK=1 expo start --android --clear",
     "ios": "expo start --ios",
+    "ios:mock": "EXPO_PUBLIC_USE_MOCK=1 expo start --ios --clear",
     "web": "expo start --web"
   },
   "private": true
