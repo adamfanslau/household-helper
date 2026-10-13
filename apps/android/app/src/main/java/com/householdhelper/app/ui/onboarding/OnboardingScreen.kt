@@ -50,12 +50,12 @@ fun OnboardingScreen(container: AppContainer, isSheet: Boolean, onDone: () -> Un
             busy = true
             runCatching {
                 if (join) container.households.join(value.uppercase()) else container.households.create(value)
-            }.onSuccess { input = ""; error = null; onDone() }.onFailure { error = it.message }
+            }.onSuccess { input = ""; error = null; container.router.tab.value = com.householdhelper.app.data.AppRouter.Tab.LIST; onDone() }.onFailure { error = it.message }
             busy = false
         }
     }
 
-    Column(Modifier.fillMaxSize().then(if (isSheet) Modifier else Modifier.systemBarsPadding()).padding(24.dp)) {
+    Column(Modifier.then(if (isSheet) Modifier.fillMaxWidth() else Modifier.fillMaxSize().systemBarsPadding()).padding(24.dp)) {
         Text(if (isSheet) "Another household" else "Welcome", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(16.dp))
         // Expressive connected button group as the Create / Join switch.
@@ -85,7 +85,7 @@ fun OnboardingScreen(container: AppContainer, isSheet: Boolean, onDone: () -> Un
             shapes = ButtonDefaults.shapes(),
             modifier = Modifier.fillMaxWidth().height(52.dp).testTag("onboarding.submit"),
         ) { Text(if (join) "Join household" else "Create household") }
-        Spacer(Modifier.weight(1f))
+        if (!isSheet) Spacer(Modifier.weight(1f)) else Spacer(Modifier.height(16.dp))
         if (!isSheet) {
             TextButton(onClick = { container.auth.signOut() }, modifier = Modifier.testTag("settings.signOut")) { Text("Sign out") }
         }

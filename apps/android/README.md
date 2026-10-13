@@ -15,4 +15,12 @@ line), Navigation 3 1.2.0, Firebase BoM 35, Ktor 3.6, kotlinx.serialization 1.11
 
 `./gradlew :app:installDevDebug` installs on the running AVD; `scripts/dev/android.sh` wraps the
 loop; `apps/android/.claude/skills/verify/SKILL.md` documents driving it. Unit tests
-(`:app:testDevDebugUnitTest`) decode the API golden fixtures like the iOS tests do.
+(`:app:testDevDebugUnitTest`) decode the API golden fixtures like the iOS tests do and cover list
+grouping and SSE change application; `:app:connectedDevDebugAndroidTest` runs a Compose smoke test
+against the local stack (`scripts/dev/android.sh uitest` after `stack.sh reset`).
+
+Interaction model (see the plan's §3.0): tap a row = bought / un-buy, swipe right = bought, swipe left
+= delete with a 5 s Undo snackbar, long-press = sheet with Move to shop / Edit / Mark bought / Delete.
+The add bar sits above the keyboard. Realtime arrives over SSE (`data/EventsClient.kt`, reconnects
+with backoff and refetches on foreground); a "Reconnecting…" pill shows after 3 s offline. Deep links:
+`householdhelper://list | shops | shops/<id> | settings | join/<CODE>`.

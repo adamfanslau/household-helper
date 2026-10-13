@@ -8,4 +8,6 @@ class AppContainer(context: Context) {
     val api = ApiClient(auth)
     val households = HouseholdRepository(context.applicationContext, api)
     val list = ListRepository(api)
+    val events = EventsClient(auth)
+    val router = AppRouter()
 }

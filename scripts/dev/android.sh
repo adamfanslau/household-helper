@@ -6,6 +6,10 @@
 #   android.sh shot <label>           screenshot to .dev/shots/<label>/screen.png
 #   android.sh tree                   uiautomator dump: resource-id | text | content-desc | bounds
 #   android.sh tap <tag | x y>        tap by testTag (resource-id) or point
+#   android.sh key <KEYCODE> [n] | clear      send a keycode n times | empty the focused field (≤ 40 chars)
+#   android.sh open <deeplink>                 VIEW intent to the running app (householdhelper://…)
+#   android.sh wait <tag> [secs] | waittext "<text>" [secs]   poll the tree (default 8 s) — use before taps after animations
+#   android.sh taptext "<text>"       tap the first node with that exact text (snackbar actions, dialog buttons)
 #   android.sh longpress <tag>  | type "text" | swipe up|down|left|right [tag] | back
 #   android.sh night on|off | fontscale 1.0|2.0
 #   android.sh log [n]                last n lines of logcat tagged HH
@@ -56,6 +60,14 @@ case "$cmd" in
     [ $# -ge 1 ] || usage
     if [ $# -eq 2 ]; then adbs shell input tap "$1" "$2" && echo "tapped $1,$2"
     else pt=$(center "$1"); [ -n "$pt" ] || die "no node with resource-id $1"; adbs shell input tap $pt && echo "tapped $1 ($pt)"; fi ;;
+  key) [ $# -ge 1 ] || usage; n="${2:-1}"; for _ in $(seq 1 "$n"); do adbs shell input keyevent "$1"; done; echo "key $1 x$n" ;;
+  clear) sleep 0.4; adbs shell input keyevent KEYCODE_MOVE_END && adbs shell input keyevent $(printf 'KEYCODE_DEL %.0s' $(seq 1 40)) && echo "cleared field" ;;
+  open) [ $# -eq 1 ] || usage; adbs shell am start -a android.intent.action.VIEW -d "$1" "$PKG_DEV" >/dev/null && echo "opened $1" ;;
+  wait|waittext)
+    [ $# -ge 1 ] || usage; key=$([ "$cmd" = wait ] && echo center || echo center-text); secs="${2:-8}"; t0=$SECONDS
+    while :; do pt=$(dump | python3 "$REPO_ROOT/scripts/dev/uia.py" "$key" "$1"); [ -n "$pt" ] && { echo "found $1 after $((SECONDS-t0))s"; break; }
+      [ $((SECONDS-t0)) -lt "$secs" ] || die "timeout waiting for $1"; sleep 0.5; done ;;
+  taptext) [ $# -eq 1 ] || usage; pt=$(dump | python3 "$REPO_ROOT/scripts/dev/uia.py" center-text "$1"); [ -n "$pt" ] || die "no node with text $1"; adbs shell input tap $pt && echo "tapped text $1 ($pt)" ;;
   longpress) [ $# -eq 1 ] || usage; pt=$(center "$1"); [ -n "$pt" ] || die "no node with resource-id $1"; set -- $pt; adbs shell input swipe "$1" "$2" "$1" "$2" 900 && echo "long-pressed ($1,$2)" ;;
   type) [ $# -eq 1 ] || usage; adbs shell input text "$(printf '%s' "$1" | sed 's/ /%s/g')" && echo "typed" ;;
   swipe)
@@ -64,8 +76,8 @@ case "$cmd" in
     case "$dir" in
       up) adbs shell input swipe "$cx" $((cy+400)) "$cx" $((cy-400)) 300 ;;
       down) adbs shell input swipe "$cx" $((cy-400)) "$cx" $((cy+400)) 300 ;;
-      left) adbs shell input swipe $((cx+300)) "$cy" $((cx-500)) "$cy" 300 ;;
-      right) adbs shell input swipe $((cx-300)) "$cy" $((cx+500)) "$cy" 300 ;;
+      left) adbs shell input swipe $((cx+300)) "$cy" $((cx-500)) "$cy" 600 ;;
+      right) adbs shell input swipe $((cx-300)) "$cy" $((cx+500)) "$cy" 600 ;;
       *) usage ;;
     esac && echo "swiped $dir${tag:+ on $tag}" ;;
   back) adbs shell input keyevent KEYCODE_BACK && echo back ;;

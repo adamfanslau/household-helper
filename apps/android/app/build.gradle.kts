@@ -80,6 +80,10 @@ android {
         getByName("test").resources.srcDir("../../api/internal/httpapi/testdata/golden")
     }
 
+    testOptions {
+        unitTests.isReturnDefaultValues = true   // android.util.Log in pure unit tests
+    }
+
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }

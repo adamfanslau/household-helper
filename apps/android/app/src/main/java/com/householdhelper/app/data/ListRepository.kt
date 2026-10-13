@@ -1,12 +1,29 @@
 package com.householdhelper.app.data
 
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import java.util.UUID
 
-/** Items and shops of the selected household (read side for A1; mutations and realtime in A2). */
+/**
+ * Items and shops of the selected household: optimistic mutations, delayed deletes with undo,
+ * and SSE change application (insert de-dupes by id, update replaces, delete removes).
+ */
 class ListRepository(private val api: ApiClient) {
     private val _items = MutableStateFlow<List<ShoppingListItem>>(emptyList())
     val items: StateFlow<List<ShoppingListItem>> = _items
@@ -17,6 +34,16 @@ class ListRepository(private val api: ApiClient) {
     val error = MutableStateFlow<String?>(null)
     var loadedHouseholdId: String? = null
         private set
+    private val hid: String? get() = loadedHouseholdId
+    // Lazy: Dispatchers.Main does not exist in plain unit tests (ListRepository.applied).
+    private val scope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate) }
+
+    data class PendingDelete(val item: ShoppingListItem, val job: Job)
+    private val _pendingDeletes = MutableStateFlow<List<PendingDelete>>(emptyList())
+    val pendingDeletes: StateFlow<List<PendingDelete>> = _pendingDeletes
+
+    @Serializable
+    data class NewItemBody(val id: String, val name: String, val shopId: String? = null, val catalogItemId: String? = null, val quantity: String? = null)
 
     suspend fun load(householdId: String) {
         _loading.value = loadedHouseholdId != householdId
@@ -24,7 +51,8 @@ class ListRepository(private val api: ApiClient) {
             coroutineScope {
                 val i = async { api.get<List<ShoppingListItem>>("/v1/households/$householdId/items") }
                 val s = async { api.get<List<Shop>>("/v1/households/$householdId/shops") }
-                _items.value = i.await()
+                val hidden = _pendingDeletes.value.map { it.item.id }.toSet()
+                _items.value = i.await().filter { it.id !in hidden }
                 _shops.value = s.await()
             }
             loadedHouseholdId = householdId
@@ -38,11 +66,189 @@ class ListRepository(private val api: ApiClient) {
         }
     }
 
+    suspend fun refresh() { hid?.let { load(it) } }
+
     fun clear() {
+        _pendingDeletes.value.forEach { it.job.cancel() }
+        _pendingDeletes.value = emptyList()
         _items.value = emptyList()
         _shops.value = emptyList()
         loadedHouseholdId = null
     }
+
+    fun shop(id: String?): Shop? = id?.let { s -> _shops.value.firstOrNull { it.id == s } }
+
+    // MARK: items
+
+    /** Adds optimistically with a client id so the server echo (and a retry) de-duplicate. */
+    suspend fun add(name: String, shopId: String? = null, catalogItemId: String? = null, quantity: String? = null) {
+        val h = hid ?: return
+        val trimmed = name.trim(); if (trimmed.isEmpty()) return
+        val id = UUID.randomUUID().toString()
+        val now = Now.iso()
+        replace(ShoppingListItem(id, h, trimmed, shopId, catalogItemId, quantity, "needed", null, now, now, null))
+        try {
+            val saved: ShoppingListItem = api.post("/v1/households/$h/items", NewItemBody(id, trimmed, shopId, catalogItemId, quantity))
+            replace(saved)
+            bumpNeeded(saved.shopId, 1)
+        } catch (e: Exception) {
+            _items.update { list -> list.filter { it.id != id } }
+            error.value = e.message
+        }
+    }
+
+    private suspend fun patch(item: ShoppingListItem, body: JsonObject, optimistic: ShoppingListItem) {
+        val h = hid ?: return
+        replace(optimistic)
+        try {
+            val saved: ShoppingListItem = api.patch("/v1/households/$h/items/${item.id}", body)
+            replace(saved)
+        } catch (e: Exception) {
+            replace(item)
+            error.value = e.message
+        }
+    }
+
+    suspend fun toggle(item: ShoppingListItem) {
+        val next = if (item.isBought) item.copy(status = "needed", boughtAt = null) else item.copy(status = "bought", boughtAt = Now.iso())
+        bumpNeeded(item.shopId, if (next.isBought) -1 else 1)
+        patch(item, JsonObject(mapOf("status" to JsonPrimitive(next.status))), next)
+    }
+
+    suspend fun move(item: ShoppingListItem, shopId: String?) {
+        if (item.shopId == shopId) return
+        if (!item.isBought) { bumpNeeded(item.shopId, -1); bumpNeeded(shopId, 1) }
+        patch(item, JsonObject(mapOf("shop_id" to (shopId?.let { JsonPrimitive(it) } ?: JsonNull))), item.copy(shopId = shopId))
+    }
+
+    suspend fun edit(item: ShoppingListItem, name: String, quantity: String?) {
+        val trimmed = name.trim(); if (trimmed.isEmpty()) return
+        val q = quantity?.trim()?.takeIf { it.isNotEmpty() }
+        patch(item, JsonObject(mapOf("name" to JsonPrimitive(trimmed), "quantity" to (q?.let { JsonPrimitive(it) } ?: JsonNull))), item.copy(name = trimmed, quantity = q))
+    }
+
+    /** Removes now, deletes on the server after [graceMs] unless [undoDelete] is called. */
+    fun delete(item: ShoppingListItem, graceMs: Long = 5_000) {
+        val h = hid ?: return
+        _items.update { list -> list.filter { it.id != item.id } }
+        if (!item.isBought) bumpNeeded(item.shopId, -1)
+        val job = scope.launch {
+            delay(graceMs)
+            _pendingDeletes.update { p -> p.filter { it.item.id != item.id } }
+            try { api.delete("/v1/households/$h/items/${item.id}") } catch (e: Exception) { error.value = e.message; refresh() }
+        }
+        _pendingDeletes.update { it + PendingDelete(item, job) }
+    }
+
+    fun undoDelete(id: String) {
+        val p = _pendingDeletes.value.firstOrNull { it.item.id == id } ?: return
+        p.job.cancel()
+        _pendingDeletes.update { list -> list.filter { it.item.id != id } }
+        if (_items.value.none { it.id == id }) {
+            replace(p.item)
+            if (!p.item.isBought) bumpNeeded(p.item.shopId, 1)
+        }
+    }
+
+    suspend fun clearBought() {
+        val h = hid ?: return
+        val before = _items.value
+        _items.update { list -> list.filter { !it.isBought } }
+        try { api.delete("/v1/households/$h/items?status=bought") } catch (e: Exception) { _items.value = before; error.value = e.message }
+    }
+
+    // MARK: shops
+
+    suspend fun addShop(name: String) {
+        val h = hid ?: return
+        val trimmed = name.trim(); if (trimmed.isEmpty()) return
+        try {
+            val shop: Shop = api.post("/v1/households/$h/shops", mapOf("name" to trimmed))
+            replaceShop(shop)
+        } catch (e: Exception) { error.value = e.message }
+    }
+
+    suspend fun renameShop(shop: Shop, name: String) {
+        val h = hid ?: return
+        val trimmed = name.trim(); if (trimmed.isEmpty() || trimmed == shop.name) return
+        try {
+            val saved: Shop = api.patch("/v1/households/$h/shops/${shop.id}", mapOf("name" to trimmed))
+            replaceShop(saved)
+        } catch (e: Exception) { error.value = e.message }
+    }
+
+    /** The server sets shop_id NULL on the shop's items (they become Unsorted). */
+    suspend fun deleteShop(shop: Shop) {
+        val h = hid ?: return
+        val beforeShops = _shops.value; val beforeItems = _items.value
+        _shops.update { list -> list.filter { it.id != shop.id } }
+        _items.update { list -> list.map { if (it.shopId == shop.id) it.copy(shopId = null) else it } }
+        try { api.delete("/v1/households/$h/shops/${shop.id}") } catch (e: Exception) { _shops.value = beforeShops; _items.value = beforeItems; error.value = e.message }
+    }
+
+    // MARK: realtime
+
+    /** Applies one change frame; returns true when a refetch is needed (shop deletions move items). */
+    fun apply(change: ChangeEvent): Boolean {
+        when (change.table to change.type) {
+            "shopping_list_items" to "delete" -> {
+                val id = change.row.jsonObject["id"]?.jsonPrimitive?.content ?: return false
+                _pendingDeletes.update { p -> p.filter { it.item.id != id } }
+                _items.update { list -> list.filter { it.id != id } }
+            }
+            "shopping_list_items" to "insert", "shopping_list_items" to "update" -> {
+                val row = runCatching { HHJson.decodeFromJsonElement(ShoppingListItem.serializer(), change.row) }.getOrNull() ?: return false
+                if (_pendingDeletes.value.any { it.item.id == row.id }) return false
+                replace(row)
+            }
+            "shops" to "delete" -> {
+                val id = change.row.jsonObject["id"]?.jsonPrimitive?.content ?: return false
+                _shops.update { list -> list.filter { it.id != id } }
+                _items.update { list -> list.map { if (it.shopId == id) it.copy(shopId = null) else it } }
+                return true
+            }
+            "shops" to "insert", "shops" to "update" -> {
+                runCatching { HHJson.decodeFromJsonElement(Shop.serializer(), change.row) }.getOrNull()?.let { replaceShop(it) }
+            }
+        }
+        return false
+    }
+
+    // MARK: helpers
+
+    private fun replace(item: ShoppingListItem) {
+        _items.update { list ->
+            if (list.any { it.id == item.id }) list.map { if (it.id == item.id) item else it }
+            else (list + item).sortedWith(compareBy({ it.createdAt }, { it.id }))
+        }
+    }
+
+    private fun replaceShop(shop: Shop) {
+        _shops.update { list ->
+            (if (list.any { it.id == shop.id }) list.map { if (it.id == shop.id) shop else it } else list + shop)
+                .sortedWith(compareBy({ it.sortOrder }, { it.createdAt }))
+        }
+    }
+
+    private fun bumpNeeded(shopId: String?, delta: Int) {
+        shopId ?: return
+        _shops.update { list -> list.map { if (it.id == shopId) it.copy(neededCount = maxOf(0, it.neededCount + delta)) else it } }
+    }
+
+    companion object {
+        /** Pure helper for tests: items after applying one change. */
+        fun applied(items: List<ShoppingListItem>, change: ChangeEvent): List<ShoppingListItem> {
+            val repo = ListRepository(ApiClient(AuthRepository.NONE, "http://localhost"))
+            repo._items.value = items
+            repo.loadedHouseholdId = "test"
+            repo.apply(change)
+            return repo._items.value
+        }
+    }
+}
+
+object Now {
+    fun iso(): String = java.time.format.DateTimeFormatter.ISO_INSTANT.format(java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS))
 }
 
 /** Pure grouping: needed items by shop in sort order, Unsorted last, bought separate. */

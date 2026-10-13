@@ -13,27 +13,49 @@ Prereqs: local stack up (`scripts/dev/stack.sh up`; the app reaches it on the de
 ```bash
 scripts/dev/android.sh build                       # ./gradlew :app:installDevDebug, prints BUILD OK
 scripts/dev/android.sh launch alice                # force-stop + start with HH_UITEST_USER (dev flavor)
-scripts/dev/android.sh tree | grep list.item       # resource-id | text | content-desc | class | bounds
-scripts/dev/android.sh tap tab.settings
-scripts/dev/snap.sh android settings               # .dev/shots/settings/{screen.png,tree.txt,log.txt}
-scripts/dev/assert.sh tree settings 'settings.signOut'
+scripts/dev/android.sh wait list.item.Milk 20      # poll the tree until the tag exists (after launch/animations)
+scripts/dev/android.sh tap list.input; scripts/dev/android.sh type "Oat milk"; scripts/dev/android.sh tap list.add
+scripts/dev/android.sh back                        # dismiss the keyboard, it covers the lower half of the list
+scripts/dev/android.sh wait "list.item.Oat milk"
+scripts/dev/snap.sh android add-item               # .dev/shots/add-item/{screen.png,tree.txt,log.txt}
+scripts/dev/assert.sh api alice /v1/households/11111111-1111-4111-8111-111111111111/items '.[] | select(.name=="Oat milk") | .shop_id == null'
 ```
 
-Test tags appear as `resource-id` only because the root sets `testTagsAsResourceId = true`.
-Tap by tag, assert from the tree / API / `android.sh log` (logcat tag `HH`), read `screen.png`
-for layout questions. `launch none` relaunches like a tap on the launcher icon.
-Dark mode: `android.sh night on|off`; font scale: `android.sh fontscale 2.0` (back to `1.0`).
+Driver commands (`scripts/dev/android.sh`): `tree`, `tap <tag|x y>`, `taptext "<text>"` (snackbar actions,
+dialog buttons), `longpress <tag>` (opens the row sheet), `swipe left|right|up|down [tag]` (600 ms horizontal
+swipes; left = delete, right = bought), `type "text"`, `clear` (empties the focused field — tap the field first),
+`key <KEYCODE> [n]`, `back`, `wait <tag> [secs]` / `waittext "<text>" [secs]`, `open householdhelper://…`
+(deep link into the running app), `night yes|no`, `fontscale 2.0` (back to `1.0`), `log [n]` (logcat tag `HH`),
+`unit`, `uitest` (Compose `SmokeTest`, needs a fresh seed: `stack.sh reset` first).
+
+Assert from the tree / API / log, read `screen.png` only for layout questions. `launch none` relaunches
+like a tap on the launcher icon (session + household must survive).
 
 ## Identifiers (same vocabulary as iOS A11y.swift)
 
-`signin.dev.alice|bob`, `signin.google`, `onboarding.mode.create|join`, `onboarding.input`,
-`onboarding.submit`, `tab.list|shops|settings`, `list.section.<name>`, `list.item.<name>`,
-`list.bought.toggle`, `settings.email`, `settings.household.<name>`, `settings.signOut`.
+`signin.dev.alice|bob`, `signin.google`, `onboarding.sheet`, `onboarding.mode.create|join`, `onboarding.input`,
+`onboarding.submit`, `tab.list|shops|settings`, `list`, `list.input`, `list.add`, `list.section.<name>`,
+`list.item.<name>`, `list.bought.toggle`, `list.bought.menu`, `list.bought.clear`, `list.share`, `list.empty`,
+`item.sheet`, `item.move.<shop>|Unsorted`, `item.edit`, `item.toggle`, `item.delete`, `edit.name`, `edit.quantity`,
+`edit.save`, `shops.input`, `shops.add`, `shops.row.<name>`, `shops.delete.confirm`, `shop.input`, `shop.add`,
+`shop.toList.<name>`, `shop.menu`, `shop.rename.input`, `settings.name`, `settings.email`, `settings.inviteCode`,
+`settings.share`, `settings.regenerate`, `settings.household.<name>`, `settings.addHousehold`, `settings.rename.input`,
+`settings.signOut`, `settings.signOut.confirm`, `connection.reconnecting`, `snackbar`.
+
+Deep links: `householdhelper://list | shops | shops/<uuid> | settings | join/<CODE>`.
 
 ## Gotchas
 
 - Play-Store AVD: no `adb root`; read state via logcat and the API, not the filesystem.
+- Sheets, dialogs and dropdown menus are separate windows: their tags show up only because each one
+  carries `Modifier.exposeTestTags()` (ui/Semantics.kt). Add it to any new sheet/dialog/popup.
+- The keyboard stays open after `type`; `back` once before tapping anything in the lower half.
+- `uiautomator dump` waits for an idle UI; `wait`/`waittext` poll instead of fixed sleeps. `taptext` must
+  run while the snackbar (5 s undo grace) is still showing.
+- Settings is a scrolling list; `swipe up` before `settings.signOut` at large font scales.
 - `adb shell input text` can't type spaces directly; the helper encodes them (`%s`).
+- Configuration changes (night mode, font scale) recreate the Activity; deep-link intents are handled only
+  on a fresh start (`savedInstanceState == null`), so the current tab survives them.
 - First Gradle build is minutes (dependency download); keep the daemon (never `--stop`).
 - The dev flavor's `google-services.json` is fabricated; Firebase Auth talks to the emulator only.
 - Seed and users: see the `dev-stack` skill (alice owns Mock Household, bob The Neighbors, carol none).
