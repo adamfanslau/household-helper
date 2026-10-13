@@ -14,7 +14,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/adamfanslau/household-helper/apps/api/internal/auth"
 	"github.com/adamfanslau/household-helper/apps/api/internal/config"
+	"github.com/adamfanslau/household-helper/apps/api/internal/devseed"
 	"github.com/adamfanslau/household-helper/apps/api/internal/httpapi"
 	"github.com/adamfanslau/household-helper/apps/api/internal/store"
 )
@@ -46,16 +48,27 @@ func run() error {
 	}
 	defer db.Close()
 
+	// config already refused the emulator on the production port / a non-loopback host.
+	var verifier auth.Verifier
 	authMode := "firebase"
 	if cfg.EmulatorHost != "" {
 		authMode = "emulator"
-		log.Warn("auth: Firebase Auth emulator mode requested (verifier lands in api step B)", "host", cfg.EmulatorHost)
+		verifier = auth.NewEmulatorVerifier(cfg.FirebaseProjectID)
+		log.Warn("auth: accepting UNSIGNED tokens from the Firebase Auth emulator", "host", cfg.EmulatorHost, "project", cfg.FirebaseProjectID)
+	} else {
+		fv, err := auth.NewFirebaseVerifier(ctx, cfg.FirebaseProjectID, "")
+		if err != nil {
+			return fmt.Errorf("firebase verifier: %w", err)
+		}
+		verifier = fv
 	}
 	if cfg.DevSeed {
-		log.Warn("DEV_SEED=1: the seed lands in api step B; nothing seeded")
+		if err := devseed.Run(ctx, db, "http://"+cfg.EmulatorHost, cfg.FirebaseProjectID, log); err != nil {
+			return fmt.Errorf("dev seed: %w", err)
+		}
 	}
 
-	handler := httpapi.New(httpapi.Options{DB: db, Log: log, Version: version, Auth: authMode})
+	handler := httpapi.New(httpapi.Options{DB: db, Log: log, Verifier: verifier, Version: version, Auth: authMode})
 
 	addr := net.JoinHostPort(cfg.Host, cfg.Port)
 	srv := &http.Server{

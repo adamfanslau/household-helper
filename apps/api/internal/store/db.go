@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/adamfanslau/household-helper/apps/api/internal/ids"
 	_ "modernc.org/sqlite"
 )
 
@@ -93,13 +93,7 @@ func (db *DB) Tx(ctx context.Context, fn func(tx *sql.Tx) error) error {
 }
 
 // NewID returns a UUIDv7 string.
-func NewID() string {
-	id, err := uuid.NewV7()
-	if err != nil {
-		return uuid.NewString()
-	}
-	return id.String()
-}
+func NewID() string { return ids.New() }
 
 // Now returns the current time as an RFC 3339 UTC string with milliseconds.
 func Now() string {
