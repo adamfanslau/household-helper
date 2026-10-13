@@ -1,0 +1,8 @@
+{
+  "id": "dev-alice",
+  "email": "alice@dev.local",
+  "display_name": "Alice",
+  "provider": "password",
+  "created_at": "2026-01-01T10:00:00.000Z",
+  "last_seen_at": "2026-01-01T10:00:00.000Z"
+}

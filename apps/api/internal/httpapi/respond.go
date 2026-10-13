@@ -38,6 +38,8 @@ func (s *Server) fail(w http.ResponseWriter, err error, notFoundMsg string) {
 	switch {
 	case errors.Is(err, store.ErrNotFound):
 		writeError(w, http.StatusNotFound, "not_found", notFoundMsg, nil)
+	case errors.Is(err, store.ErrInvalid):
+		writeError(w, http.StatusBadRequest, "invalid_request", "referenced shop or catalog item is not in this household", nil)
 	case errors.Is(err, store.ErrConflict):
 		writeError(w, http.StatusConflict, "conflict", "the resource is in a state that does not allow this", nil)
 	default:

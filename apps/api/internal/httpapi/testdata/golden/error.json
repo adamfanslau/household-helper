@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "invalid_request",
+    "message": "invalid item",
+    "fields": {
+      "name": "required, 1-200 characters"
+    }
+  }
+}

@@ -1,0 +1,95 @@
+# hh-api — HTTP contract
+
+Base URL: `https://hh-api.fanslau.me` (prod), `http://localhost:8091` (dev; `10.0.2.2:8091` from the
+Android emulator). All `/v1` routes need `Authorization: Bearer <Firebase ID token>`. JSON only,
+`snake_case`, timestamps are RFC 3339 UTC with milliseconds (`2026-01-01T10:00:00.000Z`), ids are
+UUID strings (clients may mint their own UUID for `POST …/items` to make retries idempotent).
+
+Kept in sync by hand with the handlers. The wire shapes are pinned by
+`internal/httpapi/testdata/golden/*.json` (`make golden` after a deliberate change) and decoded by
+the iOS and Android unit tests; a tag change touches all three.
+
+## Authentication
+
+Identity comes only from the verified token (`sub` → user id, `email`, `name`,
+`firebase.sign_in_provider`). The user row is upserted on first sight (throttled). Clients never
+send a user id; `added_by` / `created_by` in bodies are ignored.
+
+| Mode | When | Tokens |
+|---|---|---|
+| `firebase` | `FIREBASE_PROJECT_ID` set, no emulator host | RS256, keys from Google's JWKS |
+| `emulator` | `FIREBASE_AUTH_EMULATOR_HOST` set (loopback + non-8081 only) | unsigned emulator tokens, same iss/aud/exp checks |
+
+`GET /healthz` → `{"version":"<sha>","auth":"firebase|emulator"}` (503 + `"db":"not ready"` when the db fails). `GET /readyz` → `ok`.
+
+## Errors
+
+```json
+{"error":{"code":"not_found","message":"no such household","fields":null}}
+```
+
+| HTTP | code | meaning |
+|---|---|---|
+| 400 | `invalid_request` | malformed JSON, failed validation (`fields` maps field → hint), or a shop/catalog reference outside the household |
+| 401 | `unauthorized` | missing, invalid or expired token |
+| 404 | `not_found` | unknown route, or the caller is not a member of the household (non-members cannot tell whether it exists) |
+| 409 | `conflict` | state does not allow the action |
+| 413 | `payload_too_large` | body over 64 KiB |
+| 429 | `rate_limited` | too many join attempts (10 per minute per user) |
+| 500 | `internal` | logged with the `X-Request-Id` echoed on every response |
+
+Every response carries `X-Request-Id` (a client-supplied one ≤ 64 chars is echoed). `/v1` responses are `Cache-Control: no-store`.
+
+## Resources
+
+**User** (`GET /v1/me`): `id`, `email`, `display_name`, `provider`, `created_at`, `last_seen_at`.
+
+**Household**: `id`, `name`, `created_by` (nullable), `created_at`, `updated_at`, `role` (`owner`|`member`, the caller's membership; present on household responses).
+
+**Invite**: `id`, `household_id`, `code` (8 chars, A–Z/0–9), `created_by`, `created_at`, `expires_at` (nullable), `revoked_at` (nullable).
+
+**Shop**: `id`, `household_id`, `name`, `sort_order` (int, server-assigned on create), `created_at`, `updated_at`, `needed_count` (int, computed: list items with `status=needed` in this shop).
+
+**CatalogItem**: `id`, `shop_id`, `name`, `default_unit` (nullable), `created_at`, `updated_at`.
+
+**ShoppingListItem**: `id`, `household_id`, `name`, `shop_id` (nullable → "Unsorted"), `catalog_item_id` (nullable), `quantity` (nullable), `status` (`needed`|`bought`), `added_by` (nullable), `created_at`, `updated_at`, `bought_at` (nullable; set by the server exactly when `status` is `bought`).
+
+## Routes
+
+Household-scoped routes (`…/households/{hid}/…`) require membership; otherwise 404.
+
+| Method & path | Body | Returns |
+|---|---|---|
+| `GET /v1/me` | | User |
+| `GET /v1/households` | | `[Household]`, oldest first |
+| `POST /v1/households` | `{"name"}` (1–100) | 201 Household (caller is `owner`; the first invite is minted too) |
+| `POST /v1/households/join` | `{"code"}` (case-insensitive, trimmed) | 200 Household (`role: member`; idempotent) · 404 invalid/expired/revoked · 429 |
+| `GET /v1/households/{hid}` | | Household |
+| `PATCH /v1/households/{hid}` | `{"name"}` | Household |
+| `GET /v1/households/{hid}/invites` | | `[Invite]`, newest first (show the newest with `revoked_at == null`) |
+| `POST /v1/households/{hid}/invites` | | 201 Invite |
+| `POST /v1/households/{hid}/invites/{id}/revoke` | | Invite |
+| `GET /v1/households/{hid}/shops` | | `[Shop]` by `sort_order` |
+| `POST /v1/households/{hid}/shops` | `{"name"}` (1–100) | 201 Shop (`sort_order` = max+1) |
+| `GET /v1/households/{hid}/shops/{shopId}` | | Shop |
+| `PATCH /v1/households/{hid}/shops/{shopId}` | `{"name"?, "sort_order"?}` | Shop |
+| `DELETE /v1/households/{hid}/shops/{shopId}` | | 204; its catalog is deleted, its list items keep existing with `shop_id: null` |
+| `GET /v1/households/{hid}/shops/{shopId}/catalog-items` | | `[CatalogItem]` by name |
+| `POST /v1/households/{hid}/shops/{shopId}/catalog-items` | `{"name"(1–100), "default_unit"?(≤50)}` | 201 CatalogItem |
+| `DELETE /v1/households/{hid}/shops/{shopId}/catalog-items/{itemId}` | | 204 |
+| `GET /v1/households/{hid}/items` | | `[ShoppingListItem]`, oldest first, needed and bought |
+| `POST /v1/households/{hid}/items` | `{"id"?(UUID), "name"(1–200), "shop_id"?, "catalog_item_id"?, "quantity"?(≤50)}` | 201 ShoppingListItem; 200 when `id` already exists (retry). A `catalog_item_id` supplies `shop_id` and, if no `quantity` was sent, the catalog `default_unit`. Mismatched or foreign references → 400 |
+| `PATCH /v1/households/{hid}/items/{itemId}` | `{"name"?, "quantity"?(nullable), "shop_id"?(nullable; "move to shop"), "status"?}` | ShoppingListItem; `status` flips set/clear `bought_at` server-side |
+| `DELETE /v1/households/{hid}/items/{itemId}` | | 204 |
+| `DELETE /v1/households/{hid}/items?status=bought` | | 204 ("Clear recently bought"); without the query → 400 |
+| `GET /v1/households/{hid}/events` | | SSE stream (api step D) |
+| `PUT /v1/me/push-tokens` · `DELETE /v1/me/push-tokens/{token}` | | (api step E) |
+
+Nulls are explicit (`"shop_id": null`), never omitted, except `role` which is omitted when not applicable.
+
+## Typical flows
+
+- **First launch**: `GET /v1/households` → `[]` → onboarding → `POST /v1/households` or `POST /v1/households/join` → select the returned household → `GET …/items` + `GET …/shops` → open `…/events`.
+- **List screen**: group `needed` items by `shop_id` in `shops` order, `null` last ("Unsorted"); `bought` items go under "Recently bought".
+- **Shop detail "To list"**: `POST …/items {"name": catalog.name, "catalog_item_id": catalog.id}` (server fills `shop_id` and `quantity`).
+- **Settings invite**: newest invite with `revoked_at == null`; `POST …/invites` to regenerate, then revoke the old one.

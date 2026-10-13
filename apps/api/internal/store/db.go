@@ -18,7 +18,17 @@ import (
 var (
 	ErrNotFound = errors.New("not found")
 	ErrConflict = errors.New("conflict")
+	// ErrInvalid is a reference that is well-formed but not allowed, e.g. a shop
+	// from another household; handlers map it to 400 with a field message.
+	ErrInvalid = errors.New("invalid reference")
 )
+
+// Opt is an optional, nullable string for PATCH bodies: Set=false means "leave
+// as is", Set=true with Value=nil means "clear".
+type Opt struct {
+	Set   bool
+	Value *string
+}
 
 // DB holds the writer and reader pools.
 type DB struct {

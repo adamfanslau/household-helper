@@ -15,6 +15,21 @@ func (s *Server) routes(v1 *http.ServeMux) {
 	v1.HandleFunc("POST /v1/households/{hid}/invites", s.member(s.createInvite))
 	v1.HandleFunc("POST /v1/households/{hid}/invites/{id}/revoke", s.member(s.revokeInvite))
 
+	v1.HandleFunc("GET /v1/households/{hid}/shops", s.member(s.listShops))
+	v1.HandleFunc("POST /v1/households/{hid}/shops", s.member(s.createShop))
+	v1.HandleFunc("GET /v1/households/{hid}/shops/{shopId}", s.member(s.getShop))
+	v1.HandleFunc("PATCH /v1/households/{hid}/shops/{shopId}", s.member(s.patchShop))
+	v1.HandleFunc("DELETE /v1/households/{hid}/shops/{shopId}", s.member(s.deleteShop))
+	v1.HandleFunc("GET /v1/households/{hid}/shops/{shopId}/catalog-items", s.member(s.listCatalog))
+	v1.HandleFunc("POST /v1/households/{hid}/shops/{shopId}/catalog-items", s.member(s.createCatalogItem))
+	v1.HandleFunc("DELETE /v1/households/{hid}/shops/{shopId}/catalog-items/{itemId}", s.member(s.deleteCatalogItem))
+
+	v1.HandleFunc("GET /v1/households/{hid}/items", s.member(s.listItems))
+	v1.HandleFunc("POST /v1/households/{hid}/items", s.member(s.createItem))
+	v1.HandleFunc("DELETE /v1/households/{hid}/items", s.member(s.clearBought))
+	v1.HandleFunc("PATCH /v1/households/{hid}/items/{itemId}", s.member(s.patchItem))
+	v1.HandleFunc("DELETE /v1/households/{hid}/items/{itemId}", s.member(s.deleteItem))
+
 	v1.HandleFunc("/v1/", func(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "not_found", "no such route", nil)
 	})
