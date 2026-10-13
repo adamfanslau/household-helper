@@ -36,3 +36,4 @@ apps/android/app/src/prod/google-services.json
 *.p8
 *.p12
 .idea/
+.claude/settings.local.json

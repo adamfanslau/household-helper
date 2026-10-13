@@ -1,0 +1,38 @@
+name: API CI
+
+on:
+  push:
+    branches: [main]
+    paths: ["apps/api/**", ".github/workflows/api-ci.yml"]
+  pull_request:
+    paths: ["apps/api/**", ".github/workflows/api-ci.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/api/go.mod
+          cache-dependency-path: apps/api/go.sum
+
+      - name: gofmt
+        run: |
+          out=$(gofmt -l ./cmd ./internal)
+          if [ -n "$out" ]; then echo "gofmt needed:"; echo "$out"; exit 1; fi
+
+      - name: Vet and test
+        run: go vet ./... && go test -race ./...
+
+      - name: Static build
+        env:
+          CGO_ENABLED: "0"
+        run: go build ./...
