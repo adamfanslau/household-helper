@@ -43,7 +43,7 @@ func TestRunSeedsOnceAndAlwaysEnsuresUsers(t *testing.T) {
 			t.Fatalf("run %d: %v", i, err)
 		}
 	}
-	if len(created) != 4 || created[0] != UIDAlice || created[1] != UIDBob {
+	if len(created) != 6 || created[0] != UIDAlice || created[1] != UIDBob || created[2] != UIDCarol {
 		t.Fatalf("emulator users must be ensured on every run: %v", created)
 	}
 	hs, err := db.ListHouseholds(context.Background(), UIDAlice)
@@ -52,6 +52,9 @@ func TestRunSeedsOnceAndAlwaysEnsuresUsers(t *testing.T) {
 	}
 	if hs, _ := db.ListHouseholds(context.Background(), UIDBob); len(hs) != 1 || hs[0].ID != HouseholdNeighbors {
 		t.Fatalf("bob should own only The Neighbors: %+v", hs)
+	}
+	if hs, _ := db.ListHouseholds(context.Background(), UIDCarol); len(hs) != 0 {
+		t.Fatalf("carol must start without a household: %+v", hs)
 	}
 	var items, bought int
 	_ = db.R.QueryRow(`SELECT COUNT(*) FROM shopping_list_items WHERE household_id = ?`, HouseholdMock).Scan(&items)

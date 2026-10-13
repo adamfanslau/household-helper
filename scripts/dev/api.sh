@@ -4,7 +4,7 @@
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 need jq; need curl
 who="${1:-}"; method="${2:-}"; path="${3:-}"; body="${4:-}"
-[ -n "$who" ] && [ -n "$method" ] && [ -n "$path" ] || die 'usage: api.sh alice|bob GET|POST|PATCH|DELETE /v1/path [json]'
+[ -n "$who" ] && [ -n "$method" ] && [ -n "$path" ] || die 'usage: api.sh alice|bob|carol GET|POST|PATCH|DELETE /v1/path [json]'
 stack_up_api || die "api is down (scripts/dev/stack.sh up)"
 tok="$("$REPO_ROOT/scripts/dev/token.sh" "$who")"
 out="$(mktemp)"

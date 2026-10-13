@@ -1,0 +1,5 @@
+// Dev build: Firebase Auth emulator + local API. Baked into the bundle so a relaunch from the
+// home screen behaves exactly like one from Xcode. `$()` splits the `//` so it is not a comment.
+HH_API_BASE_URL = http:/$()/localhost:8091
+HH_AUTH_EMULATOR_HOST = 127.0.0.1:9099
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) DEBUG HH_EMULATOR

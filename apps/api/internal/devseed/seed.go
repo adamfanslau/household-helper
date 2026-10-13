@@ -23,6 +23,7 @@ import (
 const (
 	UIDAlice = "dev-alice"
 	UIDBob   = "dev-bob"
+	UIDCarol = "dev-carol" // no household: exercises onboarding
 
 	HouseholdMock      = "11111111-1111-4111-8111-111111111111"
 	HouseholdNeighbors = "22222222-2222-4222-8222-222222222222"
@@ -50,7 +51,7 @@ const (
 
 type user struct{ UID, Email, Name string }
 
-var Users = []user{{UIDAlice, "alice@dev.local", "Alice"}, {UIDBob, "bob@dev.local", "Bob"}}
+var Users = []user{{UIDAlice, "alice@dev.local", "Alice"}, {UIDBob, "bob@dev.local", "Bob"}, {UIDCarol, "carol@dev.local", "Carol"}}
 
 // Run ensures the emulator users exist (every start: the emulator forgets them on
 // restart) and inserts the rows when the households table is empty.
@@ -63,13 +64,13 @@ func Run(ctx context.Context, db *store.DB, emulatorURL, projectID string, log *
 		return err
 	}
 	if n > 0 {
-		log.Info("dev seed ready", "rows", "db not empty, skipped (make dev-reset for a fresh seed)", "users", "alice@dev.local bob@dev.local", "password", Password, "invites", InviteMock+" "+InviteNeighbors)
+		log.Info("dev seed ready", "rows", "db not empty, skipped (make dev-reset for a fresh seed)", "users", "alice@dev.local bob@dev.local carol@dev.local", "password", Password, "invites", InviteMock+" "+InviteNeighbors)
 		return nil
 	}
 	if err := db.Tx(ctx, func(tx *sql.Tx) error { return insertRows(ctx, tx) }); err != nil {
 		return fmt.Errorf("seed rows: %w", err)
 	}
-	log.Info("dev seed ready", "rows", "inserted", "users", "alice@dev.local bob@dev.local", "password", Password,
+	log.Info("dev seed ready", "rows", "inserted", "users", "alice@dev.local bob@dev.local carol@dev.local (no household)", "password", Password,
 		"invites", InviteMock+" (Mock Household, alice owner) "+InviteNeighbors+" (The Neighbors, bob owner)",
 		"household", HouseholdMock, "shop_tj", ShopTJ)
 	return nil
@@ -117,6 +118,7 @@ func insertRows(ctx context.Context, tx *sql.Tx) error {
 	}{
 		{`INSERT INTO users (id, email, display_name, provider, created_at, last_seen_at) VALUES (?, ?, ?, 'password', ?, ?)`, []any{UIDAlice, "alice@dev.local", "Alice", t(0), t(0)}},
 		{`INSERT INTO users (id, email, display_name, provider, created_at, last_seen_at) VALUES (?, ?, ?, 'password', ?, ?)`, []any{UIDBob, "bob@dev.local", "Bob", t(0), t(0)}},
+		{`INSERT INTO users (id, email, display_name, provider, created_at, last_seen_at) VALUES (?, ?, ?, 'password', ?, ?)`, []any{UIDCarol, "carol@dev.local", "Carol", t(0), t(0)}},
 		{`INSERT INTO households (id, name, created_by, created_at, updated_at) VALUES (?, 'Mock Household', ?, ?, ?)`, []any{HouseholdMock, UIDAlice, t(0), t(0)}},
 		{`INSERT INTO households (id, name, created_by, created_at, updated_at) VALUES (?, 'The Neighbors', ?, ?, ?)`, []any{HouseholdNeighbors, UIDBob, t(1), t(1)}},
 		{`INSERT INTO household_members (household_id, user_id, role, joined_at) VALUES (?, ?, 'owner', ?)`, []any{HouseholdMock, UIDAlice, t(0)}},

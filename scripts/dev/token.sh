@@ -5,7 +5,7 @@
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 need jq; need curl
 who="${1:-}"
-case "$who" in alice|bob) ;; *) die "usage: token.sh alice|bob" ;; esac
+case "$who" in alice|bob|carol) ;; *) die "usage: token.sh alice|bob|carol" ;; esac
 email="$who@dev.local"
 
 sign_in() {
@@ -14,7 +14,7 @@ sign_in() {
     -d "{\"email\":\"$email\",\"password\":\"password\",\"returnSecureToken\":true}" 2>/dev/null | jq -r '.idToken // empty'
 }
 ensure_users() { # same call the Go dev seed makes (internal/devseed)
-  for u in "dev-alice alice@dev.local Alice" "dev-bob bob@dev.local Bob"; do
+  for u in "dev-alice alice@dev.local Alice" "dev-bob bob@dev.local Bob" "dev-carol carol@dev.local Carol"; do
     set -- $u
     curl -fsS -m 5 -o /dev/null -X POST "http://$AUTH_EMULATOR/identitytoolkit.googleapis.com/v1/projects/$FIREBASE_PROJECT/accounts" \
       -H 'Authorization: Bearer owner' -H 'Content-Type: application/json' \
