@@ -19,6 +19,7 @@ type Principal struct {
 	Email    string
 	Name     string
 	Provider string // firebase.sign_in_provider: google.com, apple.com, password (emulator)
+	Expiry   time.Time
 }
 
 // Verifier turns a bearer token into a Principal.
@@ -78,7 +79,11 @@ func principalFrom(c claims) (Principal, error) {
 	if uid == "" || len(uid) > 128 {
 		return Principal{}, ErrInvalidToken
 	}
-	return Principal{UID: uid, Email: c.Email, Name: c.Name, Provider: c.Firebase.SignInProvider}, nil
+	p := Principal{UID: uid, Email: c.Email, Name: c.Name, Provider: c.Firebase.SignInProvider}
+	if c.ExpiresAt != nil {
+		p.Expiry = c.ExpiresAt.Time
+	}
+	return p, nil
 }
 
 func (v *FirebaseVerifier) Verify(_ context.Context, token string) (Principal, error) {

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/adamfanslau/household-helper/apps/api/internal/sse"
 	"github.com/adamfanslau/household-helper/apps/api/internal/store"
 )
 
@@ -33,6 +34,9 @@ func TestGolden(t *testing.T) {
 		"catalog_item": store.CatalogItem{ID: cid, ShopID: sid, Name: "Milk", DefaultUnit: str("1 gal"), CreatedAt: ts, UpdatedAt: ts},
 		"shopping_list_item": store.ListItem{ID: "55555555-5555-4555-8555-000000000001", HouseholdID: hid, Name: "Milk", ShopID: str(sid), CatalogItemID: str(cid),
 			Quantity: str("1 gal"), Status: "bought", AddedBy: str("dev-alice"), CreatedAt: ts, UpdatedAt: ts, BoughtAt: str(ts)},
+		"sse_change": sse.Event{ID: "0199c700-0000-7000-8000-000000000001", Table: "shopping_list_items", Type: "update", Actor: "dev-bob",
+			Row: store.ListItem{ID: "55555555-5555-4555-8555-000000000001", HouseholdID: hid, Name: "Milk", ShopID: str(sid), CatalogItemID: str(cid),
+				Quantity: str("1 gal"), Status: "bought", AddedBy: str("dev-alice"), CreatedAt: ts, UpdatedAt: ts, BoughtAt: str(ts)}},
 		"error": errorBody{Error: errorDetail{Code: "invalid_request", Message: "invalid item", Fields: map[string]string{"name": "required, 1-200 characters"}}},
 	}
 	for name, v := range fixtures {

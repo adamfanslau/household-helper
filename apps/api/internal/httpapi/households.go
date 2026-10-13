@@ -90,6 +90,7 @@ func (s *Server) patchHousehold(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err, "no such household")
 		return
 	}
+	s.publish(r, "households", "update", h)
 	writeJSON(w, http.StatusOK, h)
 }
 
@@ -117,6 +118,7 @@ func (s *Server) joinHousehold(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err, "invalid or expired invite code")
 		return
 	}
+	s.publishTo(r, h.ID, "household_members", "insert", store.Member{HouseholdID: h.ID, UserID: p.UID, Role: h.Role, JoinedAt: store.Now()})
 	writeJSON(w, http.StatusOK, h)
 }
 
@@ -149,6 +151,7 @@ func (s *Server) createInvite(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err, "")
 		return
 	}
+	s.publish(r, "household_invites", "insert", inv)
 	writeJSON(w, http.StatusCreated, inv)
 }
 
@@ -158,5 +161,6 @@ func (s *Server) revokeInvite(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err, "no such invite")
 		return
 	}
+	s.publish(r, "household_invites", "update", inv)
 	writeJSON(w, http.StatusOK, inv)
 }

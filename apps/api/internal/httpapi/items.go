@@ -72,6 +72,7 @@ func (s *Server) createItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if created {
+		s.publish(r, "shopping_list_items", "insert", item)
 		writeJSON(w, http.StatusCreated, item)
 		return
 	}
@@ -133,6 +134,7 @@ func (s *Server) patchItem(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err, "no such item")
 		return
 	}
+	s.publish(r, "shopping_list_items", "update", item)
 	writeJSON(w, http.StatusOK, item)
 }
 
@@ -141,6 +143,7 @@ func (s *Server) deleteItem(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err, "no such item")
 		return
 	}
+	s.publish(r, "shopping_list_items", "delete", idRow{ID: r.PathValue("itemId")})
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -150,9 +153,13 @@ func (s *Server) clearBought(w http.ResponseWriter, r *http.Request) {
 		invalid(w, "bulk delete needs ?status=bought", map[string]string{"status": "bought"})
 		return
 	}
-	if _, err := s.db.ClearBought(r.Context(), r.PathValue("hid")); err != nil {
+	deleted, err := s.db.ClearBought(r.Context(), r.PathValue("hid"))
+	if err != nil {
 		s.fail(w, err, "")
 		return
+	}
+	for _, id := range deleted {
+		s.publish(r, "shopping_list_items", "delete", idRow{ID: id})
 	}
 	w.WriteHeader(http.StatusNoContent)
 }

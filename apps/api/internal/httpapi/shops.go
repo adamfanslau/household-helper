@@ -32,6 +32,7 @@ func (s *Server) createShop(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err, "")
 		return
 	}
+	s.publish(r, "shops", "insert", shop)
 	writeJSON(w, http.StatusCreated, shop)
 }
 
@@ -81,6 +82,7 @@ func (s *Server) patchShop(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err, "no such shop")
 		return
 	}
+	s.publish(r, "shops", "update", shop)
 	writeJSON(w, http.StatusOK, shop)
 }
 
@@ -89,6 +91,8 @@ func (s *Server) deleteShop(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err, "no such shop")
 		return
 	}
+	// Items of the shop now have shop_id NULL; clients refetch items on a shop delete.
+	s.publish(r, "shops", "delete", idRow{ID: r.PathValue("shopId")})
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -127,6 +131,7 @@ func (s *Server) createCatalogItem(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err, "no such shop")
 		return
 	}
+	s.publish(r, "catalog_items", "insert", c)
 	writeJSON(w, http.StatusCreated, c)
 }
 
@@ -135,5 +140,6 @@ func (s *Server) deleteCatalogItem(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err, "no such catalog item")
 		return
 	}
+	s.publish(r, "catalog_items", "delete", catalogDeleteRow{ID: r.PathValue("itemId"), ShopID: r.PathValue("shopId")})
 	w.WriteHeader(http.StatusNoContent)
 }

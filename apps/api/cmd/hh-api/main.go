@@ -18,6 +18,7 @@ import (
 	"github.com/adamfanslau/household-helper/apps/api/internal/config"
 	"github.com/adamfanslau/household-helper/apps/api/internal/devseed"
 	"github.com/adamfanslau/household-helper/apps/api/internal/httpapi"
+	"github.com/adamfanslau/household-helper/apps/api/internal/sse"
 	"github.com/adamfanslau/household-helper/apps/api/internal/store"
 )
 
@@ -68,7 +69,8 @@ func run() error {
 		}
 	}
 
-	handler := httpapi.New(httpapi.Options{DB: db, Log: log, Verifier: verifier, Version: version, Auth: authMode})
+	hub := sse.New()
+	handler := httpapi.New(httpapi.Options{DB: db, Log: log, Verifier: verifier, Hub: hub, Version: version, Auth: authMode})
 
 	addr := net.JoinHostPort(cfg.Host, cfg.Port)
 	srv := &http.Server{

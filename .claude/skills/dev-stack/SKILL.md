@@ -37,7 +37,11 @@ scripts/dev/api.sh alice GET /v1/households
 scripts/dev/api.sh bob   POST /v1/households/join '{"code":"MOCK1234"}'
 scripts/dev/api.sh alice POST /v1/households '{"name":"Test Home"}'
 scripts/dev/api.sh alice GET /v1/households/<hid>/invites
+scripts/dev/sse.sh alice 11111111-1111-4111-8111-111111111111 30   # watch the event stream for 30 s
 ```
+
+Realtime check: run `sse.sh` in the background (`&`), make a change with `api.sh bob …`, then read
+the frame counts it prints (`event: ready`, `: ping`, `event: change` + data lines).
 
 Expect `HTTP <code>` then a compact JSON body; errors use `{"error":{"code","message","fields"}}`.
 

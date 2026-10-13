@@ -82,10 +82,34 @@ Household-scoped routes (`…/households/{hid}/…`) require membership; otherwi
 | `PATCH /v1/households/{hid}/items/{itemId}` | `{"name"?, "quantity"?(nullable), "shop_id"?(nullable; "move to shop"), "status"?}` | ShoppingListItem; `status` flips set/clear `bought_at` server-side |
 | `DELETE /v1/households/{hid}/items/{itemId}` | | 204 |
 | `DELETE /v1/households/{hid}/items?status=bought` | | 204 ("Clear recently bought"); without the query → 400 |
-| `GET /v1/households/{hid}/events` | | SSE stream (api step D) |
+| `GET /v1/households/{hid}/events` | | SSE stream, see below |
 | `PUT /v1/me/push-tokens` · `DELETE /v1/me/push-tokens/{token}` | | (api step E) |
 
 Nulls are explicit (`"shop_id": null`), never omitted, except `role` which is omitted when not applicable.
+
+## Realtime: `GET /v1/households/{hid}/events`
+
+Server-Sent Events (`Content-Type: text/event-stream`), one stream per household, same bearer auth
+and membership rule as the JSON routes. Frames:
+
+```
+event: ready
+data: {"household_id":"…"}            first frame; clients (re)fetch items + shops on it
+
+id: <event id>
+event: change
+data: {"id":"…","table":"shopping_list_items","type":"insert","row":{…},"actor":"<uid>"}
+
+: ping                                 every 25 s (keeps Cloudflare's 100 s idle timeout away)
+```
+
+`table` ∈ `shopping_list_items | shops | catalog_items | households | household_members | household_invites`,
+`type` ∈ `insert | update | delete`. `row` is the full resource for insert/update (same shape as the
+REST responses, except Household rows carry no `role`); for delete it is `{"id"}` (`catalog_items`
+also carry `shop_id`). Events are published only after the database commit. The stream closes when
+the token expires, on disconnect, or when the client falls more than 64 events behind; clients
+reconnect with a fresh token and refetch on `ready`. Android must use a read timeout of 0 on this
+request; iOS URLSession needs a timeout longer than 25 s. See `testdata/golden/sse_change.json`.
 
 ## Typical flows
 
