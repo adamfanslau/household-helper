@@ -1,0 +1,32 @@
+name: Android CI
+
+on:
+  push:
+    branches: [main]
+    paths: ["apps/android/**", ".github/workflows/android-ci.yml"]
+  pull_request:
+    paths: ["apps/android/**", ".github/workflows/android-ci.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      # The dev flavor ships a fabricated google-services.json, so no secrets are needed here.
+      - name: Unit tests + dev debug APK
+        run: ./gradlew :app:testDevDebugUnitTest :app:assembleDevDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-dev-debug
+          path: apps/android/app/build/outputs/apk/dev/debug/*.apk
