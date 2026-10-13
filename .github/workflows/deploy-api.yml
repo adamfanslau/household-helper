@@ -1,0 +1,98 @@
+# Deploy hh-api to the VPS. Copy of vps/workflows/deploy-go-app.yml (keep in sync) plus a
+# paths filter. Setup: vps/docs/45-add-an-app.md. Vars/secrets live in GitHub, never here.
+name: Deploy API to VPS
+
+on:
+  push:
+    branches: [main]
+    paths: ["apps/api/**", ".github/workflows/deploy-api.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ vars.APP_NAME }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      APP_NAME: ${{ vars.APP_NAME }}
+      APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+      MAIN_PKG: ${{ vars.MAIN_PKG || '.' }}
+      HEALTH_PATH: ${{ vars.HEALTH_PATH || '/healthz' }}
+      WORKING_DIR: ${{ vars.WORKING_DIR || '.' }}
+    defaults:
+      run:
+        working-directory: ${{ vars.WORKING_DIR || '.' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check variables
+        run: |
+          test -n "$APP_NAME" || { echo "APP_NAME variable is not set"; exit 1; }
+          test -n "$APP_DOMAIN" || { echo "APP_DOMAIN variable is not set"; exit 1; }
+          test -f go.mod || { echo "no go.mod in $WORKING_DIR (set WORKING_DIR for a monorepo)"; exit 1; }
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ env.WORKING_DIR }}/go.mod
+          cache-dependency-path: ${{ env.WORKING_DIR }}/go.sum
+
+      - name: Vet and test
+        run: |
+          go vet ./...
+          go test ./...
+
+      - name: Build
+        env:
+          CGO_ENABLED: "0"
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          mkdir -p dist
+          go build -trimpath -ldflags "-s -w -X main.version=$GITHUB_SHA" -o "dist/$APP_NAME" "$MAIN_PKG"
+          ls -l "dist/$APP_NAME"
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.VPS_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host vps
+            HostName ${{ secrets.VPS_HOST }}
+            Port ${{ vars.VPS_SSH_PORT || 22 }}
+            User deploy
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+          EOF
+
+      - name: Upload release
+        run: |
+          rsync -az --delete --chmod=D755,F755 dist/ "vps:${GITHUB_SHA}/"
+
+      - name: Activate release
+        # deploy-shell restarts the unit, waits for the health check and rolls
+        # back on failure (exit 1 fails this step).
+        run: ssh vps activate "$GITHUB_SHA"
+
+      - name: Smoke test
+        run: |
+          url="https://${APP_DOMAIN}${HEALTH_PATH}"
+          for i in 1 2 3 4 5 6; do
+            body=$(curl -sS --max-time 20 "$url" || true)
+            echo "$url -> ${body:0:200}"
+            if [[ $body == *"$GITHUB_SHA"* ]]; then
+              echo "healthz reports $GITHUB_SHA"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::$url does not report $GITHUB_SHA (Cloudflare cache or old release still running?)"
+          exit 1
