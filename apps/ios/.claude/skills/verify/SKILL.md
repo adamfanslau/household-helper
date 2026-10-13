@@ -35,8 +35,11 @@ config change. Light/dark and text size: `ios.sh appearance "$U" dark`, `ios.sh 
 
 `signin.dev.alice|bob`, `onboarding.mode` (segmented: tap by label "Create"/"Join"), `onboarding.input`,
 `onboarding.submit`, tabs by label (`ios.sh label "$U" List|Shops|Settings`), `list.item.<name>`, `list.bought.toggle`,
-`settings.household.<name>`, `settings.signOut`; later: `list.input`, `list.add`, `shops.*`, `shop.*`,
-`settings.inviteCode`, `settings.share`.
+`list.input`, `list.add`, `list.item.<name>` (tap = toggle), `list.item.<name>.bought|.delete` (swipe buttons),
+`list.bought.toggle`, `list.bought.menu`, `list.undo`, `edit.name|quantity|save`, `shops.input`, `shops.add`,
+`shops.row.<name>`, `shop.input`, `shop.add`, `shop.menu`, `shop.row.<name>` (text), `shop.toList.<name>` (row button),
+`settings.inviteCode`, `settings.share`, `settings.regenerate`, `settings.addHousehold`,
+`settings.household.<name>`, `settings.signOut`, `settings.signOut.confirm`, `connection.reconnecting`.
 
 ## Seed (scripts/dev/stack.sh reset)
 
@@ -45,6 +48,23 @@ carol has no household (onboarding flows; `launch "$U" carol`). alice owns "Mock
 Neighbors" (`JOIN5678`) and must join `MOCK1234` to see the list.
 
 ## Gotchas
+
+- **Two booted simulators**: once a second simulator boots, `axe describe-ui` returns an empty tree
+  for the other device (relaunching the app does not help; `sim.sh shutdown` + `sim.sh boot` of that
+  device does). For cross-device checks drive the second device, assert via the API, and read the
+  first device's `screen.png` (`snap.sh`). Each device keeps its own log (`.dev/logs/ios-app-<udid>.log`).
+
+- **Rows must be default-style Buttons.** Inside a `List` cell, `.buttonStyle(.plain)`, `.bordered` and
+  `.onTapGesture` never receive AXe/HID synthetic taps (the hit test resolves, the action never runs);
+  the default button style goes through cell selection and works. Keep this rule in every list row.
+- **Deep links** (`ios.sh open "$U" householdhelper://…` or `launch … <link>`) trigger SpringBoard's
+  "Open in Household Helper?" prompt; the helper taps Open by coordinates. Never call `simctl openurl`
+  directly or every later tap silently hits that sheet. `ios.sh confirm "$U"` clears a stray one.
+- Full swipes on list items trigger the full-swipe action (Bought / Delete + undo toast); catalog rows
+  only reveal a Delete button, so swipe then `ios.sh label "$U" Delete`.
+- Context menus: `ios.sh longpress "$U" <id>` then `ios.sh label "$U" "Move to shop"` → `label … Costco`.
+- The selected household persists across launches (UserDefaults); after joining another one, switch
+  back in Settings (`settings.household.<name>`) before asserting on Mock Household data.
 
 - `ios.sh build` output is filtered to `error:` lines; the full log is `.dev/logs/xcodebuild.log`.
 - First build after an SPM change resolves Firebase (minutes). Keep `.dev/DerivedData`; never delete it casually (27 GB free).

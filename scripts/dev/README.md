@@ -11,7 +11,7 @@ logs to `.dev/logs/` and pid files to `.dev/pids/`; screenshots and trees go to 
 | `disk.sh` | free disk + the caches that grow (DerivedData, Gradle, shots) | 0 |
 | `secrets-check.sh` | refuse secrets in staged files (`--all` for the tree, `--hook` = Claude PreToolUse mode); wired as git pre-commit via `.githooks/` | 0 |
 | `stack.sh`, `token.sh`, `api.sh`, `sse.sh` | local API + Auth emulator, ID tokens, curl as alice/bob | 2–5 |
-| `ios.sh`, `snap.sh`, `assert.sh` | build/install/launch/drive/snapshot/assert on a simulator | 7 |
+| `ios.sh`, `snap.sh`, `assert.sh` | build/install/launch/drive/snapshot/assert on a simulator (`open` confirms the deep-link prompt) | 7–8 |
 | `android.sh` | the same on `Pixel_10_Pro` | 12 |
 | `realtime.sh`, `handoff.sh` | cross-device check; checkpoint hand-off message | 13 / 7 |
 

@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Create or join a household. Full screen on first run, a sheet from Settings or a join link.
 struct OnboardingView: View {
     enum Mode: String, CaseIterable, Identifiable {
         case create, join
@@ -9,6 +10,11 @@ struct OnboardingView: View {
 
     @Environment(AuthStore.self) private var auth
     @Environment(HouseholdStore.self) private var households
+    @Environment(AppRouter.self) private var router
+    @Environment(\.dismiss) private var dismiss
+    var isSheet: Bool
+    var initialMode: Mode = .create
+    var initialCode: String? = nil
     @State private var mode: Mode = .create
     @State private var input = ""
     @State private var busy = false
@@ -49,19 +55,28 @@ struct OnboardingView: View {
                             Text(mode == .create ? "Create household" : "Join household").frame(maxWidth: .infinity)
                         }
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.glassProminent)
                     .disabled(busy || input.trimmingCharacters(in: .whitespaces).isEmpty)
                     .accessibilityIdentifier(A11y.onboardingSubmit)
                 }
             }
-            .navigationTitle("Welcome")
+            .navigationTitle(isSheet ? "Another household" : "Welcome")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Sign out") { auth.signOut() }
-                        .accessibilityIdentifier(A11y.settingsSignOut)
+                if isSheet {
+                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                } else {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Sign out") { auth.signOut() }
+                            .accessibilityIdentifier(A11y.settingsSignOut)
+                    }
                 }
             }
+            .onAppear {
+                mode = initialMode
+                if let code = initialCode { input = code; mode = .join }
+            }
         }
+        .presentationDetents([.medium, .large])
     }
 
     private func submit() async {
@@ -76,6 +91,9 @@ struct OnboardingView: View {
             }
             input = ""
             error = nil
+            router.pendingJoinCode = nil
+            router.tab = .list
+            if isSheet { dismiss() }
         } catch {
             self.error = error.localizedDescription
         }

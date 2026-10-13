@@ -21,6 +21,34 @@
                ReferencedContainer = "container:HouseholdHelper.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "A7A7CB36636BF44AFED9D2CB"
+               BuildableName = "HouseholdHelperTests.xctest"
+               BlueprintName = "HouseholdHelperTests"
+               ReferencedContainer = "container:HouseholdHelper.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "709DE5E7F8A3E9E843045BA3"
+               BuildableName = "HouseholdHelperUITests.xctest"
+               BlueprintName = "HouseholdHelperUITests"
+               ReferencedContainer = "container:HouseholdHelper.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -47,6 +75,17 @@
                BlueprintIdentifier = "A7A7CB36636BF44AFED9D2CB"
                BuildableName = "HouseholdHelperTests.xctest"
                BlueprintName = "HouseholdHelperTests"
+               ReferencedContainer = "container:HouseholdHelper.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "709DE5E7F8A3E9E843045BA3"
+               BuildableName = "HouseholdHelperUITests.xctest"
+               BlueprintName = "HouseholdHelperUITests"
                ReferencedContainer = "container:HouseholdHelper.xcodeproj">
             </BuildableReference>
          </TestableReference>

@@ -19,17 +19,31 @@ nonisolated enum A11y {
     static let listInput = "list.input"
     static let listAdd = "list.add"
     static func listItem(_ name: String) -> String { "list.item.\(name)" }
+    static func listItemBought(_ name: String) -> String { "list.item.\(name).bought" }
+    static func listItemDelete(_ name: String) -> String { "list.item.\(name).delete" }
     static let listBoughtToggle = "list.bought.toggle"
+    static let listBoughtMenu = "list.bought.menu"
+    static let listUndo = "list.undo"
+    static let listUndoToast = "list.undo.toast"
+    static let editName = "edit.name"
+    static let editQuantity = "edit.quantity"
+    static let editSave = "edit.save"
 
     static let shopsInput = "shops.input"
     static let shopsAdd = "shops.add"
     static func shopsRow(_ name: String) -> String { "shops.row.\(name)" }
     static let shopInput = "shop.input"
+    static let shopAdd = "shop.add"
+    static let shopMenu = "shop.menu"
     static func shopRow(_ name: String) -> String { "shop.row.\(name)" }
+    static func shopRowDelete(_ name: String) -> String { "shop.row.\(name).delete" }
     static func shopToList(_ name: String) -> String { "shop.toList.\(name)" }
 
     static let settingsInviteCode = "settings.inviteCode"
     static let settingsShare = "settings.share"
     static let settingsSignOut = "settings.signOut"
+    static let settingsSignOutConfirm = "settings.signOut.confirm"
+    static let settingsRegenerate = "settings.regenerate"
+    static let settingsAddHousehold = "settings.addHousehold"
     static func settingsHousehold(_ name: String) -> String { "settings.household.\(name)" }
 }

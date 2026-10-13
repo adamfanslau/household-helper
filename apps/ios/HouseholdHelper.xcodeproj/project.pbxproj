@@ -17,6 +17,7 @@
 		3CB6A9BE2AC1A236DF710FA6 /* ApiClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F41665917054DD7C03B1BD3 /* ApiClient.swift */; };
 		3E6A7BE60BA6CB2463B78228 /* Env.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2807040E9753DA1BAC8A07BA /* Env.swift */; };
 		40EB5F3E20BD7C595F9EC993 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5C8402ABEF483F16AC6D60E /* Models.swift */; };
+		455EC0520D2639B68F2B1867 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2546D792BA73EB7B313B67F0 /* AppRouter.swift */; };
 		4AD897480FCFF6042CFE9BDB /* HouseholdHelperApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4CF794044E0C727D55823E1 /* HouseholdHelperApp.swift */; };
 		4F0531DD0297563F67FD7EC8 /* A11y.swift in Sources */ = {isa = PBXBuildFile; fileRef = 412FF916C831EDA1DFB452A5 /* A11y.swift */; };
 		50C3D36CD5A33F3EC07C35F7 /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA69E2630E6E1E4FB86B4A9E /* AuthStore.swift */; };
@@ -25,13 +26,28 @@
 		8012F09AC60323A5731B33E5 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 260B9DB0B2825A38AF677D07 /* FirebaseAuth */; };
 		88632B1B7E23F3408193A7E6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7CC8AB9348E67354590B31D /* SettingsView.swift */; };
 		8D67BCE1F787AD4CBA51F7BB /* ModelsDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0693D8F932E2207B9FBF0D3 /* ModelsDecodingTests.swift */; };
+		91D9FD690220BE0A65A57A1F /* ChangeApplyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051899AED856674E3CCC9169 /* ChangeApplyTests.swift */; };
+		948B148CA9E44C637DF32FA9 /* CatalogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C65DD9F3D7BC9D3C53075B9C /* CatalogStore.swift */; };
+		9518D2B787C53ADC51CAF4E3 /* EventsClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6231A7E350C5091A7AFA0569 /* EventsClient.swift */; };
 		A9679BFF659FA60FB0856901 /* golden in Resources */ = {isa = PBXBuildFile; fileRef = E96388D4658AAD5827760FD1 /* golden */; };
+		A9A71962A4ADD743B2A10403 /* ShopsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC6196A0DDF7938627E03912 /* ShopsView.swift */; };
+		C7DC00EE20CC9A9F71E2DE4F /* ShopDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D00CFBC74412C7D998B0C3D /* ShopDetailView.swift */; };
 		CB0F55AADDF2039FC4D6FE9A /* ListGrouping.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3EED057290DEAE3924623C4 /* ListGrouping.swift */; };
+		D2193666DBB534A7CC0763E2 /* SSEParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0940A8ABE7FFAEE8F9252670 /* SSEParserTests.swift */; };
 		D7A0CDDB4A87307741BC3006 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CEB91917A71A81D088B8C07 /* MainTabView.swift */; };
 		E1D668B997C9275F400D87AC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0626DA73F85889FE9D638F3B /* Assets.xcassets */; };
+		EF09AB8F21EBEC60607F4CAD /* SmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B014D2BB531604FF8A0A6634 /* SmokeTests.swift */; };
+		EF123632E7B46FCDE30D6786 /* SSEParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 810F110F48EBA5CAC304F4CC /* SSEParser.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		8BD0A23C191D9880989E2419 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C9F65EED5DD62BD0784BBA45 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 348676441FB4632A87870242;
+			remoteInfo = HouseholdHelper;
+		};
 		BCE9E4F22B72F9CD54697C5C /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = C9F65EED5DD62BD0784BBA45 /* Project object */;
@@ -42,8 +58,11 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		051899AED856674E3CCC9169 /* ChangeApplyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangeApplyTests.swift; sourceTree = "<group>"; };
 		0626DA73F85889FE9D638F3B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		0940A8ABE7FFAEE8F9252670 /* SSEParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSEParserTests.swift; sourceTree = "<group>"; };
 		104E46232E7A43413AC3B0A4 /* ListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListView.swift; sourceTree = "<group>"; };
+		2546D792BA73EB7B313B67F0 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
 		2807040E9753DA1BAC8A07BA /* Env.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Env.swift; sourceTree = "<group>"; };
 		29A2826C4C7401A3BAE29A4E /* ListStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListStore.swift; sourceTree = "<group>"; };
 		2CEB91917A71A81D088B8C07 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
@@ -51,15 +70,21 @@
 		412FF916C831EDA1DFB452A5 /* A11y.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = A11y.swift; sourceTree = "<group>"; };
 		4FCA4501FDCF5BA0E53039E0 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
 		506CF3F5E0864EEF36F8BE74 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		6231A7E350C5091A7AFA0569 /* EventsClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsClient.swift; sourceTree = "<group>"; };
+		625DFD3608C3259E19BE1BED /* HouseholdHelperUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = HouseholdHelperUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		6D00CFBC74412C7D998B0C3D /* ShopDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopDetailView.swift; sourceTree = "<group>"; };
 		7773A6B9752D3CC60F65EF52 /* ListGroupingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListGroupingTests.swift; sourceTree = "<group>"; };
 		7B315E93A3E3B82F839B7AEF /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
+		810F110F48EBA5CAC304F4CC /* SSEParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSEParser.swift; sourceTree = "<group>"; };
 		8241030BA023D255D6430564 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		8C1B0DA6A7412DB13110AB74 /* HouseholdHelper.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = HouseholdHelper.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		921E4E6EA8850D069988572F /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		9F41665917054DD7C03B1BD3 /* ApiClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApiClient.swift; sourceTree = "<group>"; };
 		A2DED013AD12CBA28FECD021 /* HouseholdHelperTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = HouseholdHelperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ABC55EE6C5AA2E179B9A1203 /* FirebaseSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseSetup.swift; sourceTree = "<group>"; };
+		B014D2BB531604FF8A0A6634 /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
 		B4CF794044E0C727D55823E1 /* HouseholdHelperApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdHelperApp.swift; sourceTree = "<group>"; };
+		C65DD9F3D7BC9D3C53075B9C /* CatalogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogStore.swift; sourceTree = "<group>"; };
 		CFDB63CBD2A4F39BDE7C7B39 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D5C8402ABEF483F16AC6D60E /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		DA69E2630E6E1E4FB86B4A9E /* AuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStore.swift; sourceTree = "<group>"; };
@@ -69,6 +94,7 @@
 		F0693D8F932E2207B9FBF0D3 /* ModelsDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsDecodingTests.swift; sourceTree = "<group>"; };
 		F7CC8AB9348E67354590B31D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		F999C51523C9092848F67CF5 /* HouseholdStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdStore.swift; sourceTree = "<group>"; };
+		FC6196A0DDF7938627E03912 /* ShopsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -83,12 +109,22 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0243DF12762F1D1194089BEE /* Shops */ = {
+			isa = PBXGroup;
+			children = (
+				6D00CFBC74412C7D998B0C3D /* ShopDetailView.swift */,
+				FC6196A0DDF7938627E03912 /* ShopsView.swift */,
+			);
+			path = Shops;
+			sourceTree = "<group>";
+		};
 		0FAD327631A73275D7A57603 /* Features */ = {
 			isa = PBXGroup;
 			children = (
 				339DAC49947397B5048CB8EE /* List */,
 				105954B0493B846A7C83FEA1 /* Onboarding */,
 				DE6C1F54D440F83EF6269570 /* Settings */,
+				0243DF12762F1D1194089BEE /* Shops */,
 				AE9F29B14998D1FB2972ECB4 /* SignIn */,
 				2CEB91917A71A81D088B8C07 /* MainTabView.swift */,
 			);
@@ -108,6 +144,7 @@
 			children = (
 				8C1B0DA6A7412DB13110AB74 /* HouseholdHelper.app */,
 				A2DED013AD12CBA28FECD021 /* HouseholdHelperTests.xctest */,
+				625DFD3608C3259E19BE1BED /* HouseholdHelperUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -124,6 +161,7 @@
 			isa = PBXGroup;
 			children = (
 				DA69E2630E6E1E4FB86B4A9E /* AuthStore.swift */,
+				C65DD9F3D7BC9D3C53075B9C /* CatalogStore.swift */,
 				F999C51523C9092848F67CF5 /* HouseholdStore.swift */,
 				29A2826C4C7401A3BAE29A4E /* ListStore.swift */,
 			);
@@ -145,6 +183,14 @@
 			);
 			name = apps;
 			path = ..;
+			sourceTree = "<group>";
+		};
+		440EC238B6C8D9520D3F6D4D /* HouseholdHelperUITests */ = {
+			isa = PBXGroup;
+			children = (
+				B014D2BB531604FF8A0A6634 /* SmokeTests.swift */,
+			);
+			path = HouseholdHelperUITests;
 			sourceTree = "<group>";
 		};
 		73E5B21AB5E3CD9A1108A0A0 /* Config */ = {
@@ -211,7 +257,9 @@
 			children = (
 				9F41665917054DD7C03B1BD3 /* ApiClient.swift */,
 				2807040E9753DA1BAC8A07BA /* Env.swift */,
+				6231A7E350C5091A7AFA0569 /* EventsClient.swift */,
 				ABC55EE6C5AA2E179B9A1203 /* FirebaseSetup.swift */,
+				810F110F48EBA5CAC304F4CC /* SSEParser.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -243,6 +291,7 @@
 		CD2E9CF833200EB720C541F0 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				2546D792BA73EB7B313B67F0 /* AppRouter.swift */,
 				B4CF794044E0C727D55823E1 /* HouseholdHelperApp.swift */,
 				506CF3F5E0864EEF36F8BE74 /* RootView.swift */,
 			);
@@ -252,8 +301,10 @@
 		CFA8D0F5F9843391AD8D80B2 /* HouseholdHelperTests */ = {
 			isa = PBXGroup;
 			children = (
+				051899AED856674E3CCC9169 /* ChangeApplyTests.swift */,
 				7773A6B9752D3CC60F65EF52 /* ListGroupingTests.swift */,
 				F0693D8F932E2207B9FBF0D3 /* ModelsDecodingTests.swift */,
+				0940A8ABE7FFAEE8F9252670 /* SSEParserTests.swift */,
 			);
 			path = HouseholdHelperTests;
 			sourceTree = "<group>";
@@ -265,6 +316,7 @@
 				73E5B21AB5E3CD9A1108A0A0 /* Config */,
 				9B0244895EA07023BF9FE3CE /* HouseholdHelper */,
 				CFA8D0F5F9843391AD8D80B2 /* HouseholdHelperTests */,
+				440EC238B6C8D9520D3F6D4D /* HouseholdHelperUITests */,
 				14245BFA0D976F8CB3F68C1A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -300,6 +352,24 @@
 			productReference = 8C1B0DA6A7412DB13110AB74 /* HouseholdHelper.app */;
 			productType = "com.apple.product-type.application";
 		};
+		709DE5E7F8A3E9E843045BA3 /* HouseholdHelperUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 61958E4D793EF390D9E6DDC1 /* Build configuration list for PBXNativeTarget "HouseholdHelperUITests" */;
+			buildPhases = (
+				CA278B837E40835D9F0389EB /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				951E53AAAB79FFECE4744C32 /* PBXTargetDependency */,
+			);
+			name = HouseholdHelperUITests;
+			packageProductDependencies = (
+			);
+			productName = HouseholdHelperUITests;
+			productReference = 625DFD3608C3259E19BE1BED /* HouseholdHelperUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		A7A7CB36636BF44AFED9D2CB /* HouseholdHelperTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 2B18FE98761660A99F736C6C /* Build configuration list for PBXNativeTarget "HouseholdHelperTests" */;
@@ -331,6 +401,10 @@
 					348676441FB4632A87870242 = {
 						ProvisioningStyle = Automatic;
 					};
+					709DE5E7F8A3E9E843045BA3 = {
+						ProvisioningStyle = Automatic;
+						TestTargetID = 348676441FB4632A87870242;
+					};
 					A7A7CB36636BF44AFED9D2CB = {
 						ProvisioningStyle = Automatic;
 					};
@@ -355,6 +429,7 @@
 			targets = (
 				348676441FB4632A87870242 /* HouseholdHelper */,
 				A7A7CB36636BF44AFED9D2CB /* HouseholdHelperTests */,
+				709DE5E7F8A3E9E843045BA3 /* HouseholdHelperUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -385,8 +460,11 @@
 			files = (
 				4F0531DD0297563F67FD7EC8 /* A11y.swift in Sources */,
 				3CB6A9BE2AC1A236DF710FA6 /* ApiClient.swift in Sources */,
+				455EC0520D2639B68F2B1867 /* AppRouter.swift in Sources */,
 				50C3D36CD5A33F3EC07C35F7 /* AuthStore.swift in Sources */,
+				948B148CA9E44C637DF32FA9 /* CatalogStore.swift in Sources */,
 				3E6A7BE60BA6CB2463B78228 /* Env.swift in Sources */,
+				9518D2B787C53ADC51CAF4E3 /* EventsClient.swift in Sources */,
 				052F773C3925DF83C6C03062 /* FirebaseSetup.swift in Sources */,
 				4AD897480FCFF6042CFE9BDB /* HouseholdHelperApp.swift in Sources */,
 				37B3A6A21FAF98F339D1C7F0 /* HouseholdStore.swift in Sources */,
@@ -398,8 +476,19 @@
 				40EB5F3E20BD7C595F9EC993 /* Models.swift in Sources */,
 				7FED73FD5263E4E83CC99C0C /* OnboardingView.swift in Sources */,
 				26F787D9B4FCE44980402F14 /* RootView.swift in Sources */,
+				EF123632E7B46FCDE30D6786 /* SSEParser.swift in Sources */,
 				88632B1B7E23F3408193A7E6 /* SettingsView.swift in Sources */,
+				C7DC00EE20CC9A9F71E2DE4F /* ShopDetailView.swift in Sources */,
+				A9A71962A4ADD743B2A10403 /* ShopsView.swift in Sources */,
 				1B04A8B43564FB02F889C844 /* SignInView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA278B837E40835D9F0389EB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EF09AB8F21EBEC60607F4CAD /* SmokeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -407,8 +496,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				91D9FD690220BE0A65A57A1F /* ChangeApplyTests.swift in Sources */,
 				1983CA49E8B85544BEAC4BE4 /* ListGroupingTests.swift in Sources */,
 				8D67BCE1F787AD4CBA51F7BB /* ModelsDecodingTests.swift in Sources */,
+				D2193666DBB534A7CC0763E2 /* SSEParserTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -419,6 +510,11 @@
 			isa = PBXTargetDependency;
 			target = 348676441FB4632A87870242 /* HouseholdHelper */;
 			targetProxy = BCE9E4F22B72F9CD54697C5C /* PBXContainerItemProxy */;
+		};
+		951E53AAAB79FFECE4744C32 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 348676441FB4632A87870242 /* HouseholdHelper */;
+			targetProxy = 8BD0A23C191D9880989E2419 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -599,6 +695,24 @@
 			};
 			name = DebugFirebase;
 		};
+		619A70C704360A471E7B2FE2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.householdhelper.app.uitests;
+				SDKROOT = iphoneos;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = HouseholdHelper;
+			};
+			name = Debug;
+		};
 		624DC0C8B511418CAD3453E6 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -724,6 +838,42 @@
 			};
 			name = Release;
 		};
+		A93C5B51E0DE19C108CB99DF /* DebugFirebase */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.householdhelper.app.uitests;
+				SDKROOT = iphoneos;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = HouseholdHelper;
+			};
+			name = DebugFirebase;
+		};
+		C177E7F8FDDBA1FD08DAD8F9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.householdhelper.app.uitests;
+				SDKROOT = iphoneos;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = HouseholdHelper;
+			};
+			name = Release;
+		};
 		DCDB3BE9076A279A8C630112 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -750,6 +900,16 @@
 				3F105F217E664CA8FE565CE7 /* Debug */,
 				56A8C924A7FF17EBA5603F1C /* DebugFirebase */,
 				DCDB3BE9076A279A8C630112 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		61958E4D793EF390D9E6DDC1 /* Build configuration list for PBXNativeTarget "HouseholdHelperUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				619A70C704360A471E7B2FE2 /* Debug */,
+				A93C5B51E0DE19C108CB99DF /* DebugFirebase */,
+				C177E7F8FDDBA1FD08DAD8F9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

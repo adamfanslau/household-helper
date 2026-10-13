@@ -73,10 +73,6 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.householdhelper.app
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
-    scheme:
-      configVariants: []
-      testTargets:
-        - HouseholdHelperTests
 
   HouseholdHelperTests:
     type: bundle.unit-test
@@ -94,17 +90,32 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.householdhelper.app.tests
         GENERATE_INFOPLIST_FILE: YES
 
+  HouseholdHelperUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: HouseholdHelperUITests
+    dependencies:
+      - target: HouseholdHelper
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.householdhelper.app.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: HouseholdHelper
+        SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated   # XCTestCase overrides must stay nonisolated
+
 schemes:
   HouseholdHelper:
     build:
       targets:
         HouseholdHelper: all
         HouseholdHelperTests: [test]
+        HouseholdHelperUITests: [test]
     run:
       config: Debug
     test:
       config: Debug
-      targets: [HouseholdHelperTests]
+      targets: [HouseholdHelperTests, HouseholdHelperUITests]
     profile:
       config: Release
     analyze:
