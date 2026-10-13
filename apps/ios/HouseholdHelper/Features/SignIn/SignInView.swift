@@ -1,3 +1,4 @@
+import AuthenticationServices
 import SwiftUI
 
 struct SignInView: View {
@@ -17,14 +18,28 @@ struct SignInView: View {
                 .foregroundStyle(.secondary)
             Spacer()
             VStack(spacing: 12) {
+                // Apple first: App Store 4.8 requires it alongside any third-party login.
+                SignInWithAppleButton(.signIn) { request in
+                    auth.prepareAppleRequest(request)
+                } onCompletion: { result in
+                    Task { await completeApple(result) }
+                }
+                .signInWithAppleButtonStyle(appleStyle)
+                .frame(height: 50)
+                .clipShape(Capsule())
+                .disabled(busy || Env.isEmulatorBuild)
+                .opacity(Env.isEmulatorBuild ? 0.35 : 1) // the Apple button does not dim itself when disabled
+                .accessibilityIdentifier(A11y.signInApple)
+
                 Button {
-                    // Google sign-in lands in iOS step I3 (needs the real Firebase project).
+                    Task { await signInGoogle() }
                 } label: {
                     Label("Continue with Google", systemImage: "g.circle")
                         .frame(maxWidth: .infinity)
+                        .frame(height: 34)
                 }
                 .buttonStyle(.glassProminent)
-                .disabled(true)
+                .disabled(busy || Env.isEmulatorBuild)
                 .accessibilityIdentifier(A11y.signInGoogle)
 
                 #if HH_EMULATOR
@@ -38,9 +53,10 @@ struct SignInView: View {
                     }
                 }
                 .disabled(busy)
-                Text("Dev build: Firebase Auth emulator")
+                Text("Dev build: Firebase Auth emulator (Apple and Google need the Firebase scheme)")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
                 #endif
                 if let error {
                     Text(error).font(.footnote).foregroundStyle(.red)
@@ -54,6 +70,32 @@ struct SignInView: View {
             // RootView handles HH_UITEST_USER when a session already exists; this covers the signed-out start.
             if let who = Env.uiTestUser, auth.user == nil { await signIn(who) }
             #endif
+        }
+    }
+
+    @Environment(\.colorScheme) private var colorScheme
+    private var appleStyle: SignInWithAppleButton.Style { colorScheme == .dark ? .white : .black }
+
+    private func signInGoogle() async {
+        busy = true
+        defer { busy = false }
+        do {
+            try await auth.signInWithGoogle()
+        } catch SignInError.cancelled {
+            // user backed out: no message
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    private func completeApple(_ result: Result<ASAuthorization, any Error>) async {
+        busy = true
+        defer { busy = false }
+        do {
+            try await auth.completeAppleSignIn(result)
+        } catch SignInError.cancelled {
+        } catch {
+            self.error = error.localizedDescription
         }
     }
 

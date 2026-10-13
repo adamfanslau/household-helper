@@ -37,9 +37,15 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
 
 packages:
+  # Firebase 13.0 (2026-10-07) needs app-check 12 while GoogleSignIn-iOS 10.0 still pins app-check 11
+  # (and 9.x pins gtm-session-fetcher 3); 12.x + 9.2 is the pair that resolves. Revisit when
+  # GoogleSignIn-iOS supports Firebase 13.
   Firebase:
     url: https://github.com/firebase/firebase-ios-sdk
-    from: "13.0.0"
+    from: "12.19.0"
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: "9.2.0"
 
 targets:
   HouseholdHelper:
@@ -51,6 +57,8 @@ targets:
     dependencies:
       - package: Firebase
         product: FirebaseAuth
+      - package: GoogleSignIn
+        product: GoogleSignIn
     info:
       path: HouseholdHelper/Info.plist
       properties:
@@ -69,10 +77,22 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: com.householdhelper.app
             CFBundleURLSchemes: [householdhelper]
+          # Google Sign-In callback; the value comes from GoogleService-Info.plist via Config/Secrets.xcconfig.
+          - CFBundleURLName: google-signin
+            CFBundleURLSchemes: [$(HH_GOOGLE_REVERSED_CLIENT_ID)]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.householdhelper.app
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+      configs:
+        # Sign in with Apple needs a signed app; Debug (emulator) builds stay team-less and
+        # entitlement-free so they build on any Mac. Team id comes from Config/Secrets.xcconfig.
+        DebugFirebase:
+          CODE_SIGN_ENTITLEMENTS: HouseholdHelper/HouseholdHelper.entitlements
+          DEVELOPMENT_TEAM: $(HH_TEAM_ID)
+        Release:
+          CODE_SIGN_ENTITLEMENTS: HouseholdHelper/HouseholdHelper.entitlements
+          DEVELOPMENT_TEAM: $(HH_TEAM_ID)
 
   HouseholdHelperTests:
     type: bundle.unit-test

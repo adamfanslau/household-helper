@@ -37,3 +37,4 @@ apps/android/app/src/prod/google-services.json
 *.p12
 .idea/
 .claude/settings.local.json
+apps/ios/Config/Secrets.xcconfig

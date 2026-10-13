@@ -1,6 +1,7 @@
 import FirebaseAuth
 import FirebaseCore
 
+
 enum FirebaseSetup {
     static func configure() {
         #if HH_EMULATOR

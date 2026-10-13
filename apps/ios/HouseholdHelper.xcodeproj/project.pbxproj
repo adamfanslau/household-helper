@@ -33,11 +33,13 @@
 		A9A71962A4ADD743B2A10403 /* ShopsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC6196A0DDF7938627E03912 /* ShopsView.swift */; };
 		C7DC00EE20CC9A9F71E2DE4F /* ShopDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D00CFBC74412C7D998B0C3D /* ShopDetailView.swift */; };
 		CB0F55AADDF2039FC4D6FE9A /* ListGrouping.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3EED057290DEAE3924623C4 /* ListGrouping.swift */; };
+		D0824BD08395C50512EDA5C5 /* AppleSignIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A210504F08E1F1771126DD /* AppleSignIn.swift */; };
 		D2193666DBB534A7CC0763E2 /* SSEParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0940A8ABE7FFAEE8F9252670 /* SSEParserTests.swift */; };
 		D7A0CDDB4A87307741BC3006 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CEB91917A71A81D088B8C07 /* MainTabView.swift */; };
 		E1D668B997C9275F400D87AC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0626DA73F85889FE9D638F3B /* Assets.xcassets */; };
 		EF09AB8F21EBEC60607F4CAD /* SmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B014D2BB531604FF8A0A6634 /* SmokeTests.swift */; };
 		EF123632E7B46FCDE30D6786 /* SSEParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 810F110F48EBA5CAC304F4CC /* SSEParser.swift */; };
+		FDC55D8E48F66CE768193AA3 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = C3598A328B5E722931621D51 /* GoogleSignIn */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -77,10 +79,12 @@
 		7B315E93A3E3B82F839B7AEF /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		810F110F48EBA5CAC304F4CC /* SSEParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSEParser.swift; sourceTree = "<group>"; };
 		8241030BA023D255D6430564 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		87733E8638DC8ECCC50B24F3 /* HouseholdHelper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = HouseholdHelper.entitlements; sourceTree = "<group>"; };
 		8C1B0DA6A7412DB13110AB74 /* HouseholdHelper.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = HouseholdHelper.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		921E4E6EA8850D069988572F /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		9F41665917054DD7C03B1BD3 /* ApiClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApiClient.swift; sourceTree = "<group>"; };
 		A2DED013AD12CBA28FECD021 /* HouseholdHelperTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = HouseholdHelperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A9A210504F08E1F1771126DD /* AppleSignIn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignIn.swift; sourceTree = "<group>"; };
 		ABC55EE6C5AA2E179B9A1203 /* FirebaseSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseSetup.swift; sourceTree = "<group>"; };
 		B014D2BB531604FF8A0A6634 /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
 		B4CF794044E0C727D55823E1 /* HouseholdHelperApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdHelperApp.swift; sourceTree = "<group>"; };
@@ -103,6 +107,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8012F09AC60323A5731B33E5 /* FirebaseAuth in Frameworks */,
+				FDC55D8E48F66CE768193AA3 /* GoogleSignIn in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -223,6 +228,7 @@
 				B916A5297BFA92F1130A214A /* Services */,
 				2C7861BB0950854901B306E1 /* Stores */,
 				8FF34389226E4A65575ACA6A /* Support */,
+				87733E8638DC8ECCC50B24F3 /* HouseholdHelper.entitlements */,
 				CFDB63CBD2A4F39BDE7C7B39 /* Info.plist */,
 			);
 			path = HouseholdHelper;
@@ -256,6 +262,7 @@
 			isa = PBXGroup;
 			children = (
 				9F41665917054DD7C03B1BD3 /* ApiClient.swift */,
+				A9A210504F08E1F1771126DD /* AppleSignIn.swift */,
 				2807040E9753DA1BAC8A07BA /* Env.swift */,
 				6231A7E350C5091A7AFA0569 /* EventsClient.swift */,
 				ABC55EE6C5AA2E179B9A1203 /* FirebaseSetup.swift */,
@@ -347,6 +354,7 @@
 			name = HouseholdHelper;
 			packageProductDependencies = (
 				260B9DB0B2825A38AF677D07 /* FirebaseAuth */,
+				C3598A328B5E722931621D51 /* GoogleSignIn */,
 			);
 			productName = HouseholdHelper;
 			productReference = 8C1B0DA6A7412DB13110AB74 /* HouseholdHelper.app */;
@@ -421,6 +429,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				A997DC6FF9B4485071B71741 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				40F1E14383AC7D30CB630CC2 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 14245BFA0D976F8CB3F68C1A /* Products */;
@@ -461,6 +470,7 @@
 				4F0531DD0297563F67FD7EC8 /* A11y.swift in Sources */,
 				3CB6A9BE2AC1A236DF710FA6 /* ApiClient.swift in Sources */,
 				455EC0520D2639B68F2B1867 /* AppRouter.swift in Sources */,
+				D0824BD08395C50512EDA5C5 /* AppleSignIn.swift in Sources */,
 				50C3D36CD5A33F3EC07C35F7 /* AuthStore.swift in Sources */,
 				948B148CA9E44C637DF32FA9 /* CatalogStore.swift in Sources */,
 				3E6A7BE60BA6CB2463B78228 /* Env.swift in Sources */,
@@ -734,7 +744,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = HouseholdHelper/HouseholdHelper.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = "$(HH_TEAM_ID)";
 				INFOPLIST_FILE = HouseholdHelper/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -825,7 +837,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = HouseholdHelper/HouseholdHelper.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = "$(HH_TEAM_ID)";
 				INFOPLIST_FILE = HouseholdHelper/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -937,12 +951,20 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		40F1E14383AC7D30CB630CC2 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.2.0;
+			};
+		};
 		A997DC6FF9B4485071B71741 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 13.0.0;
+				minimumVersion = 12.19.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -952,6 +974,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A997DC6FF9B4485071B71741 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAuth;
+		};
+		C3598A328B5E722931621D51 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 40F1E14383AC7D30CB630CC2 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

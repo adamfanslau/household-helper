@@ -94,9 +94,12 @@ struct SettingsView: View {
                 Button("Save") { Task { await households.rename(name: newName) } }
                 Button("Cancel", role: .cancel) {}
             }
-            .confirmationDialog("Sign out of Household Helper?", isPresented: $confirmSignOut, titleVisibility: .visible) {
+            // An alert, not a confirmationDialog: iOS 26 shows dialogs from Form rows as popovers.
+            .alert("Sign out of Household Helper?", isPresented: $confirmSignOut) {
                 Button("Sign out", role: .destructive) { auth.signOut() }
-                    .accessibilityIdentifier(A11y.settingsSignOutConfirm)
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Your lists stay in the household; sign back in any time.")
             }
         }
     }

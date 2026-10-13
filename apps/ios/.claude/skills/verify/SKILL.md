@@ -63,6 +63,11 @@ Neighbors" (`JOIN5678`) and must join `MOCK1234` to see the list.
 - Full swipes on list items trigger the full-swipe action (Bought / Delete + undo toast); catalog rows
   only reveal a Delete button, so swipe then `ios.sh label "$U" Delete`.
 - Context menus: `ios.sh longpress "$U" <id>` then `ios.sh label "$U" "Move to shop"` → `label … Costco`.
+- Alerts ignore `accessibilityIdentifier` on their buttons; tap them by coordinates from the tree
+  (filter `type == "Button"` by label; the alert's button is the narrower one). Use `.alert`, not
+  `.confirmationDialog`, for confirmations: iOS 26 renders dialogs from Form rows as popovers.
+- After a sign-out, a launch made with `HH_UITEST_USER` signs the same user straight back in. To
+  look at the sign-in screen, `ios.sh launch "$U" none` first.
 - The selected household persists across launches (UserDefaults); after joining another one, switch
   back in Settings (`settings.household.<name>`) before asserting on Mock Household data.
 

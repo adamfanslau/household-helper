@@ -3,3 +3,5 @@
 HH_API_BASE_URL = http:/$()/localhost:8091
 HH_AUTH_EMULATOR_HOST = 127.0.0.1:9099
 SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) DEBUG HH_EMULATOR
+// No Google OAuth client in emulator builds; keep the URL scheme entry well-formed.
+HH_GOOGLE_REVERSED_CLIENT_ID = householdhelper-dev

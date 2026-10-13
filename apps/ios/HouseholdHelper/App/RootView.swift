@@ -53,6 +53,7 @@ struct RootView: View {
             }
         }
         .onOpenURL { url in
+            if auth.handle(url: url) { return } // Google OAuth callback
             _ = router.handle(url)
         }
         .task(id: auth.ready) {

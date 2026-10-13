@@ -14,7 +14,7 @@ if [ "$mode" = "--hook" ]; then
 fi
 
 # Paths that must never be committed (regex on the repo-relative path).
-forbidden_paths='(^|/)\.env(\.[^/]*)?$|GoogleService-Info\.plist$|google-services\.json$|\.(p8|p12|jks|keystore|pem|key)$|fcm-sa[^/]*\.json$|(^|/)id_(rsa|ed25519|ecdsa)[^/]*$|\.db(-wal|-shm)?$|(^|/)\.netrc$'
+forbidden_paths='(^|/)\.env(\.[^/]*)?$|GoogleService-Info\.plist$|google-services\.json$|Config/Secrets\.xcconfig$|\.(p8|p12|jks|keystore|pem|key)$|fcm-sa[^/]*\.json$|(^|/)id_(rsa|ed25519|ecdsa)[^/]*$|\.db(-wal|-shm)?$|(^|/)\.netrc$'
 # Exceptions: templates and the fabricated dev-flavor Firebase config.
 allowed_paths='\.example$|^apps/android/app/src/dev/google-services\.json$'
 

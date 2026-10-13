@@ -2,3 +2,7 @@
 HH_API_BASE_URL = https:/$()/hh-api.fanslau.me
 HH_AUTH_EMULATOR_HOST =
 SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited)
+
+// Per-machine / CI values (git-ignored; written by ci_scripts/ci_post_clone.sh on Xcode Cloud):
+// HH_GOOGLE_REVERSED_CLIENT_ID, HH_TEAM_ID. See Config/Secrets.xcconfig.example.
+#include? "Secrets.xcconfig"
