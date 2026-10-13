@@ -1,0 +1,11 @@
+{
+  "name": "household-helper-dev",
+  "private": true,
+  "description": "Dev-only tooling for the monorepo: pins firebase-tools for the Firebase Auth emulator. The apps live under apps/.",
+  "scripts": {
+    "emulators": "firebase emulators:start --only auth --project demo-household-helper"
+  },
+  "devDependencies": {
+    "firebase-tools": "15.33.0"
+  }
+}

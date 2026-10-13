@@ -13,3 +13,26 @@ node_modules/
 # Build output
 dist/
 build/
+
+# --- migration to Go API + native apps (2026-10) ---
+.dev/
+apps/api/bin/
+apps/api/.env
+*.db
+*.db-wal
+*.db-shm
+firebase-debug.log
+ui-debug.log
+apps/ios/**/GoogleService-Info.plist
+apps/ios/**/xcuserdata/
+apps/ios/**/*.xcuserstate
+apps/android/.gradle/
+apps/android/.kotlin/
+apps/android/**/build/
+apps/android/local.properties
+apps/android/app/src/prod/google-services.json
+*.jks
+*.keystore
+*.p8
+*.p12
+.idea/

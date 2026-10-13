@@ -1,5 +1,38 @@
 # CLAUDE.md
 
+> **Migration in progress (started 2026-10-13).** This repo is moving from Expo + Supabase to a
+> Go API (`apps/api`, hh-api on the VPS) plus native SwiftUI (`apps/ios`) and Compose (`apps/android`)
+> apps. The authoritative plan, step list and Claude verification flow are in
+> `~/dev/household-helper-plan.md`; work happens on branch `migration/native` with a human
+> checkpoint after every step. Everything below describes the **current** Supabase-era code and
+> is rewritten in the final housekeeping step. Dev tooling lives in `scripts/dev/` (start with
+> `scripts/dev/doctor.sh`).
+
+## No secrets in git — ever (enforced)
+
+This rule outlives the migration and overrides convenience. A secret that reaches a commit is
+compromised even after removal from history: rotate it, don't just delete it.
+
+- **Never stage or commit**: `.env` files (only `*.example`), `GoogleService-Info.plist`, real
+  `google-services.json` (only the fabricated `apps/android/app/src/dev/google-services.json` is
+  tracked), `*.p8 *.p12 *.jks *.keystore *.pem *.key`, `fcm-sa*.json`, SSH keys, `*.db*`, anything
+  under `.dev/`, and no private keys, service-account JSON, JWTs, API keys, OAuth client secrets,
+  `sb_secret_*`, GitHub/Slack/AWS tokens or `KEY=value` lines with real values inside any file —
+  including docs, tests, fixtures, logs, screenshots and commit messages.
+- **Enforcement**: `scripts/dev/secrets-check.sh` scans staged files. It runs automatically as a
+  Claude Code `PreToolUse` hook before any `git commit` (see `.claude/settings.json`; a finding
+  blocks the commit) and as the git pre-commit hook (`git config core.hooksPath .githooks`, run
+  once per clone). Run `scripts/dev/secrets-check.sh --all` to audit the whole tree.
+- **If it fires**: remove the value, put it in the right secret store (`/etc/hh-api/env` on the
+  VPS, GitHub/Xcode Cloud secrets, local gitignored `.env`), reference it by env var, and re-run.
+  Only append `secrets-check: allow` to a line that is a documented non-secret (e.g. a public
+  publishable key or a fabricated demo value); never to silence a real one. Do not bypass the
+  hooks (`--no-verify`) for any reason.
+- **Dev fakes must look fake**: `demo-api-key`, `password`, `MOCK1234`, fabricated Firebase app
+  ids. Never copy a real value "just for local testing".
+- **Logs and output**: never print tokens, sessions, keys or full `Authorization` headers; the
+  dev scripts write tokens only to stdout when explicitly asked (`token.sh`), never to `.dev/logs`.
+
 Guidance for working in this repo. Read alongside [README.md](README.md) (architecture)
 and [CONTRIBUTING.md](CONTRIBUTING.md) (commit conventions).
 
