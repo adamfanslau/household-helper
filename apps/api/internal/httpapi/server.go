@@ -27,6 +27,8 @@ type Options struct {
 	RequestTimeout time.Duration
 	// Heartbeat is the SSE ping interval; 0 means 25s (Cloudflare idles at 100s).
 	Heartbeat time.Duration
+	// OnPublish sees every committed change after the hub (push notifications); nil = none.
+	OnPublish func(hid string, e sse.Event)
 }
 
 // Server holds the dependencies of every handler.
@@ -39,6 +41,7 @@ type Server struct {
 	auth      string
 	timeout   time.Duration
 	heartbeat time.Duration
+	onPublish func(hid string, e sse.Event)
 
 	seen  seen // uid -> last EnsureUser
 	joins struct {
@@ -64,7 +67,7 @@ func New(o Options) http.Handler {
 	if o.Heartbeat == 0 {
 		o.Heartbeat = 25 * time.Second
 	}
-	s := &Server{db: o.DB, log: o.Log, verifier: o.Verifier, hub: o.Hub, version: o.Version, auth: o.Auth, timeout: o.RequestTimeout, heartbeat: o.Heartbeat}
+	s := &Server{db: o.DB, log: o.Log, verifier: o.Verifier, hub: o.Hub, version: o.Version, auth: o.Auth, timeout: o.RequestTimeout, heartbeat: o.Heartbeat, onPublish: o.OnPublish}
 	s.seen.m = map[string]time.Time{}
 	s.joins.m = map[string]*rate.Limiter{}
 	return s.handler()

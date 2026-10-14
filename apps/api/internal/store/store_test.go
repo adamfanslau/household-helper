@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func openTest(t *testing.T) *DB {
@@ -64,7 +65,7 @@ func TestMigrationsIdempotent(t *testing.T) {
 		}
 	}
 	v, err := db.AppliedMigrations(ctx)
-	if err != nil || len(v) != 1 || v[0] != 1 {
+	if err != nil || len(v) != 2 || v[0] != 1 || v[1] != 2 {
 		t.Fatalf("applied = %v, %v", v, err)
 	}
 	var mode string
@@ -126,5 +127,43 @@ func TestCascadesAndSetNull(t *testing.T) {
 	}
 	if n := count(t, db, `SELECT COUNT(*) FROM users`); n != 1 {
 		t.Fatal("users must survive a household delete")
+	}
+}
+
+func TestPushTokens(t *testing.T) {
+	db := openTest(t)
+	ctx := context.Background()
+	seed(t, db)
+	exec(t, db, `INSERT INTO users (id, email, display_name, provider, created_at, last_seen_at) VALUES ('u2','b@x','','google',?,?)`, Now(), Now())
+	exec(t, db, `INSERT INTO household_members (household_id, user_id, role, joined_at) VALUES ('h1','u2','member',?)`, Now())
+	if err := db.UpsertPushToken(ctx, "t-u1", "u1", "ios"); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.UpsertPushToken(ctx, "t-u2", "u2", "android"); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.UpsertPushToken(ctx, "t-u2", "u2", "web"); err == nil {
+		t.Fatal("platform CHECK should reject web")
+	}
+	rows, err := db.HouseholdPushTokens(ctx, "h1", "u1")
+	if err != nil || len(rows) != 1 || rows[0].Token != "t-u2" || rows[0].Platform != "android" {
+		t.Fatalf("tokens minus u1: %+v, %v", rows, err)
+	}
+	// Stale rows are pruned; fresh ones stay.
+	exec(t, db, `UPDATE push_tokens SET last_seen_at = '2020-01-01T00:00:00.000Z' WHERE token = 't-u1'`)
+	n, err := db.PrunePushTokens(ctx, 60*24*time.Hour)
+	if err != nil || n != 1 {
+		t.Fatalf("pruned %d, %v", n, err)
+	}
+	// Deleting the user cascades.
+	exec(t, db, `DELETE FROM users WHERE id = 'u2'`)
+	if rows, _ = db.HouseholdPushTokens(ctx, "h1", ""); len(rows) != 0 {
+		t.Fatalf("cascade: %+v", rows)
+	}
+	if name, err := db.HouseholdName(ctx, "h1"); err != nil || name == "" {
+		t.Fatalf("household name %q, %v", name, err)
+	}
+	if name, err := db.HouseholdName(ctx, "nope"); err != nil || name != "" {
+		t.Fatalf("missing household name %q, %v", name, err)
 	}
 }

@@ -9,9 +9,11 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/adamfanslau/household-helper/apps/api/internal/auth"
+	"github.com/adamfanslau/household-helper/apps/api/internal/sse"
 	"github.com/adamfanslau/household-helper/apps/api/internal/store"
 )
 
@@ -27,9 +29,24 @@ func (fakeVerifier) Verify(_ context.Context, token string) (auth.Principal, err
 }
 
 type env struct {
-	t   *testing.T
-	srv *httptest.Server
-	db  *store.DB
+	t     *testing.T
+	srv   *httptest.Server
+	db    *store.DB
+	hooks *publishLog
+}
+
+// publishLog records what Options.OnPublish was handed (the push notifier's input).
+type publishLog struct {
+	mu   sync.Mutex
+	seen []publishedChange
+}
+
+type publishedChange struct{ hid, table, typ, actor string }
+
+func (p *publishLog) record(hid string, e sse.Event) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.seen = append(p.seen, publishedChange{hid, e.Table, e.Type, e.Actor})
 }
 
 func newEnv(t *testing.T) *env {
@@ -38,10 +55,11 @@ func newEnv(t *testing.T) *env {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := New(Options{DB: db, Log: slog.New(slog.NewTextHandler(io.Discard, nil)), Verifier: fakeVerifier{}, Version: "abc123", Auth: "emulator"})
+	hooks := &publishLog{}
+	h := New(Options{DB: db, Log: slog.New(slog.NewTextHandler(io.Discard, nil)), Verifier: fakeVerifier{}, Version: "abc123", Auth: "emulator", OnPublish: hooks.record})
 	srv := httptest.NewServer(h)
 	t.Cleanup(func() { srv.Close(); db.Close() })
-	return &env{t: t, srv: srv, db: db}
+	return &env{t: t, srv: srv, db: db, hooks: hooks}
 }
 
 func (e *env) do(method, path string, body string, hdr map[string]string) (*http.Response, string) {

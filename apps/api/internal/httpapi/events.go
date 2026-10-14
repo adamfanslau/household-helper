@@ -81,14 +81,18 @@ func (s *Server) events(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// publish fans out one committed change to the household's streams.
+// publish fans out one committed change to the household's streams (and to push).
 func (s *Server) publish(r *http.Request, table, typ string, row any) {
-	s.hub.Publish(r.PathValue("hid"), sse.Event{ID: ids.New(), Table: table, Type: typ, Row: row, Actor: principal(r).UID})
+	s.publishTo(r, r.PathValue("hid"), table, typ, row)
 }
 
 // publishTo is publish for routes without {hid} in the path (join).
 func (s *Server) publishTo(r *http.Request, hid, table, typ string, row any) {
-	s.hub.Publish(hid, sse.Event{ID: ids.New(), Table: table, Type: typ, Row: row, Actor: principal(r).UID})
+	e := sse.Event{ID: ids.New(), Table: table, Type: typ, Row: row, Actor: principal(r).UID}
+	s.hub.Publish(hid, e)
+	if s.onPublish != nil {
+		s.onPublish(hid, e)
+	}
 }
 
 type idRow struct {

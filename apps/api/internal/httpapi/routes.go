@@ -4,6 +4,8 @@ import "net/http"
 
 func (s *Server) routes(v1 *http.ServeMux) {
 	v1.HandleFunc("GET /v1/me", s.me)
+	v1.HandleFunc("PUT /v1/me/push-tokens", s.putPushToken)
+	v1.HandleFunc("DELETE /v1/me/push-tokens/{token}", s.deletePushToken)
 
 	v1.HandleFunc("GET /v1/households", s.listHouseholds)
 	v1.HandleFunc("POST /v1/households", s.createHousehold)

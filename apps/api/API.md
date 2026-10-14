@@ -83,7 +83,8 @@ Household-scoped routes (`…/households/{hid}/…`) require membership; otherwi
 | `DELETE /v1/households/{hid}/items/{itemId}` | | 204 |
 | `DELETE /v1/households/{hid}/items?status=bought` | | 204 ("Clear recently bought"); without the query → 400 |
 | `GET /v1/households/{hid}/events` | | SSE stream, see below |
-| `PUT /v1/me/push-tokens` · `DELETE /v1/me/push-tokens/{token}` | | (api step E) |
+| `PUT /v1/me/push-tokens` | `{"token"(1–4096), "platform"("ios"\|"android")}` | 204 (upsert; a token re-registered by another user moves to the caller) |
+| `DELETE /v1/me/push-tokens/{token}` | | 204, idempotent; only the caller's own registration is removed (call before signing out) |
 
 Nulls are explicit (`"shop_id": null`), never omitted, except `role` which is omitted when not applicable.
 
@@ -110,6 +111,25 @@ also carry `shop_id`). Events are published only after the database commit. The 
 the token expires, on disconnect, or when the client falls more than 64 events behind; clients
 reconnect with a fresh token and refetch on `ready`. Android must use a read timeout of 0 on this
 request; iOS URLSession needs a timeout longer than 25 s. See `testdata/golden/sse_change.json`.
+
+## Push notifications (FCM HTTP v1)
+
+Sent directly by the server when `FCM_SERVICE_ACCOUNT_FILE` points at an existing service-account
+key (`roles/firebasemessaging.admin` only); otherwise push is disabled and the token routes still
+work. Only two changes notify, and never the actor:
+
+| Change | Body | Collapsing |
+|---|---|---|
+| `shopping_list_items` insert | `<Actor> added <name>` | inserts by the same actor within 5 s → `<Actor> added N items` |
+| `household_members` insert (join) | `<Actor> joined <household>` | — |
+
+Title = household name. `data` carries `household_id` and `type` (`shopping_list_items.insert` /
+`household_members.insert`): clients suppress the banner when that household is on screen and
+switch to it on tap. Android `collapse_key` / iOS `apns-collapse-id` = `hh-<hid>`, `thread-id` =
+`<hid>`, channel `household`. Tokens FCM reports as `UNREGISTERED`, `INVALID_ARGUMENT` or
+`SENDER_ID_MISMATCH` are deleted at once; tokens unseen for 60 days are pruned daily. Actor name =
+`display_name`, else the email's local part. Pushes are best-effort: no retries, no queue beyond
+64 pending changes.
 
 ## Typical flows
 

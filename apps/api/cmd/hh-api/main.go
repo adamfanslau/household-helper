@@ -18,6 +18,7 @@ import (
 	"github.com/adamfanslau/household-helper/apps/api/internal/config"
 	"github.com/adamfanslau/household-helper/apps/api/internal/devseed"
 	"github.com/adamfanslau/household-helper/apps/api/internal/httpapi"
+	"github.com/adamfanslau/household-helper/apps/api/internal/push"
 	"github.com/adamfanslau/household-helper/apps/api/internal/sse"
 	"github.com/adamfanslau/household-helper/apps/api/internal/store"
 )
@@ -70,7 +71,19 @@ func run() error {
 	}
 
 	hub := sse.New()
-	handler := httpapi.New(httpapi.Options{DB: db, Log: log, Verifier: verifier, Hub: hub, Version: version, Auth: authMode})
+	opts := httpapi.Options{DB: db, Log: log, Verifier: verifier, Hub: hub, Version: version, Auth: authMode}
+	notifier, err := setupPush(cfg, db, log)
+	if err != nil {
+		return err
+	}
+	if notifier != nil {
+		defer notifier.Close()
+		opts.OnPublish = func(hid string, e sse.Event) {
+			notifier.Notify(push.Change{HouseholdID: hid, Table: e.Table, Type: e.Type, Row: e.Row, Actor: e.Actor})
+		}
+	}
+	go prunePushTokens(ctx, db, log)
+	handler := httpapi.New(opts)
 
 	addr := net.JoinHostPort(cfg.Host, cfg.Port)
 	srv := &http.Server{
@@ -105,4 +118,49 @@ func run() error {
 		return fmt.Errorf("shutdown: %w", err)
 	}
 	return nil
+}
+
+// setupPush builds the FCM notifier, or nil (push disabled) when no service account
+// is configured or the file is absent (the VPS env points at /etc/hh-api/fcm-sa.json
+// before the key exists).
+func setupPush(cfg config.Config, db *store.DB, log *slog.Logger) (*push.Notifier, error) {
+	if cfg.FCMServiceAccountFile == "" {
+		log.Info("push disabled: FCM_SERVICE_ACCOUNT_FILE not set")
+		return nil, nil
+	}
+	sa, err := push.LoadServiceAccount(cfg.FCMServiceAccountFile)
+	if errors.Is(err, os.ErrNotExist) {
+		log.Warn("push disabled: service account file not found", "path", cfg.FCMServiceAccountFile)
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("push: %w", err)
+	}
+	project := cfg.FCMProjectID
+	if sa.ProjectID != "" && project != sa.ProjectID {
+		log.Warn("push: FCM_PROJECT_ID differs from the service account's project", "configured", project, "key", sa.ProjectID)
+	}
+	client := push.NewClient(project, push.NewTokenSource(sa, nil), nil)
+	log.Info("push enabled", "project", project, "service_account", sa.ClientEmail)
+	return push.NewNotifier(push.DBStore{DB: db}, client, log, 0), nil
+}
+
+// prunePushTokens drops tokens unseen for 60 days, once at start and then daily.
+func prunePushTokens(ctx context.Context, db *store.DB, log *slog.Logger) {
+	t := time.NewTicker(24 * time.Hour)
+	defer t.Stop()
+	for {
+		if n, err := db.PrunePushTokens(ctx, 60*24*time.Hour); err != nil {
+			if ctx.Err() == nil {
+				log.Error("push: prune", "err", err.Error())
+			}
+		} else if n > 0 {
+			log.Info("push: pruned stale tokens", "count", n)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+	}
 }
