@@ -1,12 +1,8 @@
 # CLAUDE.md
 
-> **Migration in progress (started 2026-10-13).** This repo is moving from Expo + Supabase to a
-> Go API (`apps/api`, hh-api on the VPS) plus native SwiftUI (`apps/ios`) and Compose (`apps/android`)
-> apps. The authoritative plan, step list and Claude verification flow are in
-> `~/dev/household-helper-plan.md`; work happens on branch `migration/native` with a human
-> checkpoint after every step. Everything below describes the **current** Supabase-era code and
-> is rewritten in the final housekeeping step. Dev tooling lives in `scripts/dev/` (start with
-> `scripts/dev/doctor.sh`).
+Guidance for working in this repo. Read alongside [README.md](README.md) (architecture) and
+[CONTRIBUTING.md](CONTRIBUTING.md) (commit conventions). The migration plan with the step list
+and checkpoint protocol lives at `~/dev/household-helper-plan.md` (outside the repo).
 
 ## No secrets in git — ever (enforced)
 
@@ -36,86 +32,75 @@ compromised even after removal from history: rotate it, don't just delete it.
 - **Logs and output**: never print tokens, sessions, keys or full `Authorization` headers; the
   dev scripts write tokens only to stdout when explicitly asked (`token.sh`), never to `.dev/logs`.
 
-Guidance for working in this repo. Read alongside [README.md](README.md) (architecture)
-and [CONTRIBUTING.md](CONTRIBUTING.md) (commit conventions).
-
 ## What this is
 
-Household Helper — Expo/React Native app on a **Supabase-only** backend (Postgres + Auth +
-Realtime). Iteration 1 is a shared shopping list; budgeting comes later and stays
-Supabase-first. The mobile app talks **directly** to Supabase; there is no server of our
-own in the request path, and none is planned by default — server-shaped work goes
-Postgres-first (views, RPCs, `pg_cron`), with Supabase Edge Functions reserved for
-features that need secrets or external API calls. The database is the security
-boundary — treat it as such.
+Household Helper — a shared shopping list (budgeting next) with **three codebases**: the Go API
+`apps/api` (SQLite, SSE, FCM push) running on the VPS as `hh-api`, and native clients `apps/ios`
+(SwiftUI) and `apps/android` (Compose). Firebase Authentication is the identity provider; the API
+verifies its ID tokens. There is no Supabase, no web client and no Expo any more.
+
+## The API is the security boundary (read before touching data access)
+
+The clients are untrusted. Everything that decides who sees what lives in `apps/api`:
+
+- **Identity only from the verified token.** `requireAuth` verifies the bearer token (Firebase JWKS,
+  or the emulator verifier in dev) and sets the Principal; `added_by` / `created_by` are never read
+  from the request body.
+- **Membership on every household route.** `/v1/households/{hid}/…` goes through `member()`; a
+  non-member gets **404** (never 403 — do not leak existence). Every row query is additionally
+  scoped by `household_id` (catalog via its shop). Membership changes only through
+  `POST /v1/households` and `POST /v1/households/join` (rate-limited per uid).
+- **Server-computed facts**: invite codes (`internal/ids`), `bought_at`, `sort_order`, the
+  `quantity` copied from a catalog `default_unit`, push recipients (members minus the actor).
+- **Dev-only features are triple-gated.** The `alg=none` emulator verifier and `DEV_SEED` are
+  refused on `PORT=8081` or a non-loopback `HOST` (`internal/config`); they never appear in the VPS
+  env example. Never add a bearer bypass.
+- **Publish after commit.** SSE events and push notifications fan out only after the database
+  transaction committed (`publishTo` in `httpapi/events.go`).
+- **Push is best-effort** and sends only list-item inserts and joins, never to the actor; dead
+  tokens are deleted on FCM's say-so, stale ones pruned daily.
+- Schema changes are **new migration files only** (`internal/store/migrations/NNNN_*.sql`, applied
+  by `store.Migrate`); never edit an applied one.
+- The contract is `apps/api/API.md` + `testdata/golden/*.json`. A JSON tag change means: update
+  `API.md`, `make golden`, fix `ModelsDecodingTests` (iOS) and `ModelsDecodingTest` (Android).
 
 ## Project standards
 
-- **Language/stack**: TypeScript (strict) in `apps/mobile`, SQL migrations in `supabase/`;
-  any future server code is Deno/TypeScript Edge Functions in `supabase/functions/`. Match
-  the surrounding style; keep comments sparse and about *why*.
-- **Routing**: Expo Router (file-based) under `apps/mobile/app`. Auth/household gating lives
-  in the layout files (`app/index.tsx`, `app/(app)/_layout.tsx`).
-- **Data access**: go through the typed Supabase client in [lib/supabase.ts](apps/mobile/lib/supabase.ts).
-  Keep DB row types in [types/database.ts](apps/mobile/types/database.ts) in sync with migrations
-  (`npx supabase gen types typescript --local > types/database.ts` after schema changes).
-- **Mock mode**: `npm run ios:mock` / `android:mock` runs the app against an in-memory fake
-  client (`apps/mobile/lib/mock/`) behind the `lib/supabase.ts` seam — dev-only (`__DEV__` +
-  `EXPO_PUBLIC_USE_MOCK`), never widen the real client path for it. When app code starts using
-  a new Supabase call shape, extend `lib/mock/supabaseMock.ts` to match.
-- **Schema changes are migrations only.** Add a new `supabase/migrations/NNNN_*.sql`; never
-  edit an already-applied migration. Verify with `npx supabase db reset`.
-- **Commits**: Conventional Commits 1.0.0 (see CONTRIBUTING.md).
-- **Before a PR**: `cd apps/mobile && npx tsc --noEmit`, then `npx supabase db reset` and the
-  RLS smoke test in [supabase/tests/rls_smoke_test.sql](supabase/tests/rls_smoke_test.sql).
-
-## Cybersecurity model (read before touching data access)
-
-**Row-Level Security is the boundary, not the client.** The anon/publishable key ships in the
-app and is assumed public — never rely on client code to enforce who-can-see-what.
-
-- **RLS on by default.** Every table in `public` has RLS enabled. Any new table MUST enable RLS
-  and add explicit policies in the same migration, scoped via `public.is_household_member(hid)`.
-  A table without policies denies all access — that's the safe default; don't "fix" it by
-  disabling RLS.
-- **Membership mutations are funneled.** There is intentionally **no** direct `INSERT` policy on
-  `household_members`. Joining/creating goes through the `SECURITY DEFINER` functions
-  `create_household()` / `join_household()` ([0002_rls.sql](supabase/migrations/0002_rls.sql)).
-  This also avoids RLS recursion (the helper is `SECURITY DEFINER` so it reads the table without
-  re-triggering its own policy).
-- **`SECURITY DEFINER` hygiene.** Any definer function MUST `set search_path = public`, validate
-  `auth.uid()` is non-null, and be granted only to `authenticated` (revoke from `public`). Keep
-  them minimal — they run with elevated rights.
-- **Least privilege.** Table grants go to the `authenticated` role only. Never grant to `anon`
-  for household data. The `service_role`/secret key is server-only — it bypasses RLS and MUST
-  NOT appear in the mobile app or any `EXPO_PUBLIC_*` var.
-- **Validate at the boundary.** Input constraints live in the schema (`check` constraints, FKs,
-  enums-as-check). Client-side checks are UX only, never security.
-- **Realtime respects RLS** — subscriptions only deliver rows the user may read. Don't broaden a
-  publication assuming the client will filter.
-- **Future Edge Functions** must derive the caller from the request's Supabase JWT (via the
-  auth context / `getUser`), never from a client-supplied user/household id, and re-check
-  authorization server-side — or query as the user so RLS applies. The `service_role` key
-  lives only in function secrets, never the client; a function using it bypasses RLS and
-  MUST do its own authorization checks.
+- **Go** (`apps/api`): stdlib `net/http`, `log/slog` JSON logs (uid yes, token never), writer pool of
+  one + reader pool of four, tiny write transactions, `go test -race ./...` green; mirror the
+  existing handler/store/test shapes (`newEnv`, `fakeVerifier`). `make -C apps/api test` before a commit.
+- **iOS** (`apps/ios`): SwiftUI only, Swift 6 strict concurrency with MainActor default isolation
+  (`nonisolated` models/services), `@Observable` stores injected via `.environment`, URLSession +
+  Codable, config **baked** into the build configuration via `Config/*.xcconfig` → Info.plist (never
+  scheme env vars; `HH_UITEST_USER` is the one runtime input), system chrome for Liquid Glass (no
+  custom bar backgrounds, no `glassEffect` on content), every control carries an identifier from
+  `Support/A11y.swift`, list rows are default-style `Button`s (synthetic taps reach nothing else),
+  confirmations use `.alert`. Edit `project.yml`, then `scripts/dev/ios.sh gen` (the `.xcodeproj` is committed).
+- **Android** (`apps/android`): Compose + material3 1.5 (Expressive; keep the Expressive surface
+  small), Navigation 3, manual DI via `AppContainer`, Ktor, `kotlinx.serialization` (snake_case),
+  flavors `dev` (emulator, `adb reverse`, fabricated `google-services.json`, FCM off) and `prod`.
+  Test tags from the same vocabulary as iOS, exposed with `testTagsAsResourceId` on the root and
+  `Modifier.exposeTestTags()` on every sheet/dialog/popup.
+- **Verification rule**: every UI change is driven and asserted in the simulator/emulator with the
+  verify skills (`apps/ios:verify`, `apps/android:verify`, root `dev-stack`, `verify-realtime`)
+  before it is offered at a checkpoint; assert on the tree/API/log, read screenshots for layout only.
+- **Dev loop**: `scripts/dev/stack.sh up` (Auth emulator + seeded API), `scripts/dev/doctor.sh` when
+  something looks off. Never `xcrun simctl … booted` (use UDIDs from `scripts/dev/lib.sh`).
+- **Commits**: Conventional Commits (scopes in CONTRIBUTING.md). Work on `migration/native`; `main`
+  deploys the API.
 
 ## Secrets & environment handling
 
-- **Public by design**: `EXPO_PUBLIC_*` vars are **inlined into the app bundle** at build time.
-  Only put values there that are safe to ship: the Supabase URL and the publishable/anon key.
-  Nothing else. If a value must stay secret, it cannot be an `EXPO_PUBLIC_*` var.
-- **Never commit real secrets.** `.env` files are git-ignored (root + `apps/mobile`). Only
-  `*.example` files are tracked. `apps/mobile/.env` currently holds the **local-dev** publishable
-  key (a shared Supabase default, not sensitive); production keys must never be committed.
-- **OAuth provider secrets** (e.g. Google) are referenced via env substitution in
-  [supabase/config.toml](supabase/config.toml) — `env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)` — and
-  set in the shell/CI, never inline in the file.
-- **Server/admin keys** (`service_role` / `sb_secret_*`, Postgres connection strings) belong only
-  in backend/CI secret stores. They must never reach the mobile app, logs, or the repo.
-- **No secrets in logs or errors.** Don't `console.log` tokens, sessions, or keys. Sessions are
-  persisted via AsyncStorage by the Supabase client — don't hand-roll token storage.
-- **Rotating a leaked key**: rotate it in the Supabase dashboard, update the relevant `.env`/CI
-  secret, and (for OAuth) the provider console. A committed secret is compromised even after
-  removal from history — rotate, don't just delete.
-- When adding a new external integration, add a placeholder to the matching `.env.example`,
-  document it in the README, and wire the real value through env vars / CI secrets.
+- Server config lives in `/etc/hh-api/env` on the VPS (`FIREBASE_PROJECT_ID`,
+  `FCM_SERVICE_ACCOUNT_FILE` → `/etc/hh-api/fcm-sa.json`, 0640 root:hh-api) and in GitHub /
+  Xcode Cloud secrets for CI. Locally, `apps/api/.env` (git-ignored, from `.env.example`).
+- Client-side values that are **public by design** (Firebase project id, publishable API keys,
+  OAuth client ids) still stay out of git for the real project: `GoogleService-Info.plist`,
+  `apps/android/app/src/prod/google-services.json`, `apps/ios/Config/Secrets.xcconfig` and the Gradle
+  property `hh.googleWebClientId` are injected locally or by CI.
+- Tokens: Firebase keeps sessions (keychain / its own storage); the apps never persist ID tokens
+  themselves and never log them. The API logs the uid, never the `Authorization` header.
+- Rotating a leaked key: rotate in the Firebase/Google Cloud/Apple console, update the secret
+  store, redeploy. A committed secret is compromised even after removal from history.
+- New external integration: placeholder in the matching `.env.example`, a line in the README, real
+  value through the secret store.

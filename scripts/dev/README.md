@@ -13,7 +13,8 @@ logs to `.dev/logs/` and pid files to `.dev/pids/`; screenshots and trees go to 
 | `stack.sh`, `token.sh`, `api.sh`, `sse.sh` | local API + Auth emulator, ID tokens, curl as alice/bob | 2–5 |
 | `ios.sh`, `snap.sh`, `assert.sh` | build/install/launch/drive/snapshot/assert on a simulator (`open` confirms the deep-link prompt) | 7–8 |
 | `android.sh` | the same on `Pixel_10_Pro` | 12 |
-| `realtime.sh`, `handoff.sh` | cross-device check; checkpoint hand-off message | 13 / 7 |
+| `realtime.sh`, `handoff.sh` | cross-device check (iOS alice ↔ Android bob); checkpoint hand-off skeleton | 13 / 15 |
+| `uia.py` | uiautomator XML helpers used by `android.sh` (`tree`, `center`, `center-text`, `center-desc`) | 12 |
 
 ## Fixed facts (2026-10-13)
 
@@ -21,7 +22,10 @@ logs to `.dev/logs/` and pid files to `.dev/pids/`; screenshots and trees go to 
   (an iPhone 16e also exists on iOS 18.3 — always resolve by UDID).
 - Android: AVD `Pixel_10_Pro` (API 37.2, Play image → no `adb root`), usually `emulator-5554`.
 - Local API `http://127.0.0.1:8091`, Auth emulator `127.0.0.1:9099` (UI :4000), project `demo-household-helper`.
-  From the Android emulator use `10.0.2.2` instead of `127.0.0.1`.
+  The Android dev flavor reaches both on `127.0.0.1` through `adb reverse` (`android.sh avd up|status|launch`
+  set it up); `10.0.2.2` timed out on the API 37 image.
+- Driver additions worth knowing: `ios.sh push|allow|springboard` (notifications), `android.sh wait|waittext|
+  key|clear|open|taptext` (polling, text editing, deep links); both READMEs' verify skills list the rest.
 
 ## AXe 1.8.0 (iOS driving) — flags confirmed on install
 

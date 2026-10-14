@@ -1,7 +1,6 @@
 # Contributing to Household Helper
 
-Thanks for contributing! This project follows the
-[Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/)
+This project follows the [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/)
 specification for all commit messages. A consistent history keeps changelogs and
 [Semantic Versioning](https://semver.org/) automatable.
 
@@ -31,19 +30,22 @@ specification for all commit messages. A consistent history keeps changelogs and
 | `refactor` | Code change that neither fixes a bug nor adds a feature        | –       |
 | `perf`     | A performance improvement                                      | PATCH   |
 | `test`     | Adding or correcting tests                                     | –       |
-| `build`    | Build system or dependencies (npm, Expo, Deno)                | –       |
+| `build`    | Build system or dependencies (Go modules, SPM, Gradle)         | –       |
 | `ci`       | CI configuration and scripts                                   | –       |
-| `chore`    | Other changes that don't touch src or tests                   | –       |
+| `chore`    | Other changes that don't touch src or tests                    | –       |
 | `revert`   | Reverts a previous commit                                      | –       |
 
 ### Scopes (this monorepo)
 
 Scope is optional but encouraged. Use the area of the codebase affected:
 
-- `mobile` — the Expo app (`apps/mobile`)
-- `functions` — Supabase Edge Functions (`supabase/functions/`, future)
-- `db` — Supabase migrations / schema / RLS (`supabase/`)
-- `auth`, `realtime`, `list`, `shops`, `household` — finer-grained features
+- `api` — the Go API (`apps/api`)
+- `db` — SQLite migrations (`apps/api/internal/store/migrations`)
+- `ios` — the SwiftUI app (`apps/ios`)
+- `android` — the Compose app (`apps/android`)
+- `dev` — the dev toolkit and skills (`scripts/dev`, `.claude`)
+- `ci` — GitHub workflows, Xcode Cloud
+- `auth`, `realtime`, `push`, `list`, `shops`, `household` — finer-grained features
 
 Example: `feat(list): group shopping items by shop`.
 
@@ -53,11 +55,11 @@ Breaking changes map to a **MAJOR** version bump and must be signalled in one of
 
 1. A `!` after the type/scope:
    ```
-   feat(db)!: rename shopping_list_items.status values
+   feat(api)!: rename shopping_list_items.status values
    ```
 2. A footer (uppercase token, may be `BREAKING CHANGE` or `BREAKING-CHANGE`):
    ```
-   refactor(db): drop legacy budget view
+   refactor(db): drop the legacy budget view
 
    BREAKING CHANGE: the monthly_budget_totals view is removed; use budget_summaries instead.
    ```
@@ -94,18 +96,22 @@ description already explains it.
 ## Examples
 
 ```
-feat(auth): add email magic-link sign-in
-fix(realtime): receive DELETE events by setting replica identity full
-docs: document local Supabase setup
-refactor(household): route membership writes through SECURITY DEFINER functions
-chore(mobile): bump expo to SDK 56
-feat(functions)!: require JWT on the import endpoint
+feat(api): bulk-clear bought items
+fix(realtime): reconnect with a fresh token after the stream expires
+docs(dev): document the emulator seed
+refactor(ios): move list grouping into a pure function
+build(android): bump material3 to 1.5.0-beta02
+feat(api)!: require a client id on item creation
 ```
 
 ## Pull requests
 
 - Keep PRs focused; a PR title SHOULD follow the same Conventional Commits format.
 - Before opening a PR, make sure things pass:
-  - Mobile: `cd apps/mobile && npx tsc --noEmit`
-  - Database: `npx supabase db reset` and the RLS smoke test (see [README](README.md)).
+  - API: `make -C apps/api test` (vet + `go test -race`); `make -C apps/api golden` after a JSON change,
+    then fix the two decode tests.
+  - iOS: `scripts/dev/ios.sh unit` (and `uitest SmokeTests` when a screen changed).
+  - Android: `scripts/dev/android.sh unit` (and `uitest` when a screen changed).
+  - A UI change has been driven and asserted in the simulator/emulator (see the verify skills).
+  - `scripts/dev/secrets-check.sh` is clean (it runs as the pre-commit hook; never bypass it).
 - Reference related issues in a footer: `Refs: #123` or `Closes: #123`.
