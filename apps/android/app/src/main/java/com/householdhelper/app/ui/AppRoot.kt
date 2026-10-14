@@ -38,11 +38,14 @@ fun AppRoot(container: AppContainer) {
     val current by container.households.current.collectAsStateWithLifecycle()
 
     LaunchedEffect(user?.uid) {
+        container.push.authChanged(user?.uid)
         container.events.disconnect()
         container.households.reset()
         container.list.clear()
         if (user != null) container.households.load()
     }
+
+    LaunchedEffect(loaded) { if (loaded) container.push.openPending() }
 
     LaunchedEffect(current?.id) {
         container.list.clear()

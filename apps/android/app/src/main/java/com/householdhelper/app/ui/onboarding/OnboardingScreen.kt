@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
@@ -38,6 +39,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun OnboardingScreen(container: AppContainer, isSheet: Boolean, onDone: () -> Unit, initialJoin: Boolean = false, initialCode: String? = null) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var join by remember { mutableStateOf(initialJoin || initialCode != null) }
     var input by remember { mutableStateOf(initialCode ?: "") }
     var busy by remember { mutableStateOf(false) }
@@ -87,7 +89,7 @@ fun OnboardingScreen(container: AppContainer, isSheet: Boolean, onDone: () -> Un
         ) { Text(if (join) "Join household" else "Create household") }
         if (!isSheet) Spacer(Modifier.weight(1f)) else Spacer(Modifier.height(16.dp))
         if (!isSheet) {
-            TextButton(onClick = { container.auth.signOut() }, modifier = Modifier.testTag("settings.signOut")) { Text("Sign out") }
+            TextButton(onClick = { scope.launch { container.auth.signOut(context) } }, modifier = Modifier.testTag("settings.signOut")) { Text("Sign out") }
         }
     }
 }

@@ -26,6 +26,10 @@ class SmokeTest {
 
     @Test
     fun signInAddAndSeeItem() {
+        // The POST_NOTIFICATIONS prompt (first launch with a household) is a system window and
+        // would hide the Compose hierarchy from the test; grant it up front.
+        val instrumentation = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+        instrumentation.uiAutomation.grantRuntimePermission(instrumentation.targetContext.packageName, android.Manifest.permission.POST_NOTIFICATIONS)
         val intent = Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java).putExtra("HH_UITEST_USER", "alice")
         ActivityScenario.launch<MainActivity>(intent).use {
             compose.waitUntil(20_000) { compose.onAllNodes(hasTestTag("list.item.Milk")).fetchSemanticsNodes().isNotEmpty() }

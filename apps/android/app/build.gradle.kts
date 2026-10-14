@@ -37,6 +37,7 @@ android {
             buildConfigField("String", "AUTH_EMULATOR_HOST", "\"127.0.0.1:9099\"")
             buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"\"")
             buildConfigField("boolean", "DEV_LOGIN", "true")
+            buildConfigField("boolean", "PUSH_ENABLED", "false")   // fabricated Firebase project: no FCM
             manifestPlaceholders["networkSecurityConfig"] = "@xml/network_security_config"
         }
         create("prod") {
@@ -46,6 +47,7 @@ android {
             // Web client id of the Firebase project (Credential Manager); injected from CI/local.properties.
             buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${providers.gradleProperty("hh.googleWebClientId").orNull ?: ""}\"")
             buildConfigField("boolean", "DEV_LOGIN", "false")
+            buildConfigField("boolean", "PUSH_ENABLED", "true")
             manifestPlaceholders["networkSecurityConfig"] = "@xml/network_security_config_prod"
         }
     }
@@ -110,6 +112,7 @@ dependencies {
     implementation(libs.googleid)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
+    implementation(libs.firebase.messaging)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.content.negotiation)

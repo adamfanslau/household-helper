@@ -16,5 +16,6 @@ class HHApplication : Application() {
             FirebaseAuth.getInstance().useEmulator(host, port.toInt())
         }
         container = AppContainer(this)
+        container.push.ensureChannel()
     }
 }

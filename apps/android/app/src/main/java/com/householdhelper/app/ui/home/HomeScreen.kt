@@ -42,12 +42,18 @@ import com.householdhelper.app.ui.list.ListScreen
 import com.householdhelper.app.ui.onboarding.JoinSheet
 import com.householdhelper.app.ui.settings.SettingsScreen
 import com.householdhelper.app.ui.shops.ShopsScreen
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.delay
 
 @Composable
 fun HomeScreen(container: AppContainer) {
     val tab by container.router.tab.collectAsStateWithLifecycle()
     val joinCode by container.router.pendingJoinCode.collectAsStateWithLifecycle()
+    // Ask for notifications only once there is a household to be notified about.
+    val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { container.push.permissionResult(it) }
+    LaunchedEffect(Unit) { if (container.push.shouldAsk()) askPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS) }
     Box(Modifier.fillMaxSize()) {
         Scaffold(
             bottomBar = {

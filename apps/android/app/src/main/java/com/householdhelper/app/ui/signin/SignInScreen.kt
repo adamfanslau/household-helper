@@ -26,6 +26,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -38,6 +39,8 @@ fun SignInScreen(auth: AuthRepository) {
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    val googleAvailable = BuildConfig.GOOGLE_WEB_CLIENT_ID.isNotEmpty()
 
     Column(
         Modifier.fillMaxSize().systemBarsPadding().padding(24.dp),
@@ -52,12 +55,23 @@ fun SignInScreen(auth: AuthRepository) {
         Spacer(Modifier.weight(1f))
 
         Button(
-            onClick = { /* Credential Manager Google sign-in lands in Android A3 (prod flavor) */ },
-            enabled = !busy && !BuildConfig.DEV_LOGIN,
+            onClick = {
+                scope.launch {
+                    busy = true; error = null
+                    runCatching { auth.signInWithGoogle(context) }
+                        .onFailure { if (it !is AuthRepository.SignInCancelled) error = it.message ?: "Sign-in failed" }
+                    busy = false
+                }
+            },
+            enabled = !busy && googleAvailable,
             shapes = ButtonDefaults.shapes(),
             modifier = Modifier.fillMaxWidth().height(52.dp).testTag("signin.google"),
         ) { Text("Continue with Google") }
 
+        if (!googleAvailable && !BuildConfig.DEV_LOGIN) {
+            Spacer(Modifier.height(8.dp))
+            Text("Google sign-in is not configured for this build.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        }
         if (BuildConfig.DEV_LOGIN) {
             Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {

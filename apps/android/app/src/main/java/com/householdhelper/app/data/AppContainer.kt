@@ -10,4 +10,9 @@ class AppContainer(context: Context) {
     val list = ListRepository(api)
     val events = EventsClient(auth)
     val router = AppRouter()
+    val push = PushRegistrar(context.applicationContext, api, households, router)
+
+    init {
+        auth.beforeSignOut = { push.unregister() }
+    }
 }

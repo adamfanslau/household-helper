@@ -34,6 +34,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.NotificationsOff
+import com.householdhelper.app.data.PushRegistrar
 import androidx.compose.ui.Modifier
 import com.householdhelper.app.ui.exposeTestTags
 import androidx.compose.ui.platform.LocalContext
@@ -111,6 +117,23 @@ fun SettingsScreen(container: AppContainer, modifier: Modifier = Modifier) {
             ListItem(headlineContent = { Text("Create or join another household") }, leadingContent = { Icon(Icons.Outlined.Add, null) },
                 modifier = Modifier.clickable { showAdd = true }.testTag("settings.addHousehold"))
 
+            SectionLabel("Notifications")
+            val pushStatus by container.push.status.collectAsStateWithLifecycle()
+            val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { container.push.permissionResult(it) }
+            when (pushStatus) {
+                PushRegistrar.Status.AUTHORIZED -> ListItem(headlineContent = { Text("Notifications") }, supportingContent = { Text("Hear when someone adds to the list or joins.") },
+                    trailingContent = { Text("On") }, modifier = Modifier.testTag("settings.notifications"))
+                PushRegistrar.Status.DENIED -> ListItem(headlineContent = { Text("Notifications are off") }, supportingContent = { Text("Turn them on in system settings.") },
+                    leadingContent = { Icon(Icons.Outlined.NotificationsOff, null) },
+                    modifier = Modifier.clickable {
+                        context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))
+                    }.testTag("settings.notifications"))
+                PushRegistrar.Status.NOT_ASKED -> ListItem(headlineContent = { Text("Enable notifications") }, supportingContent = { Text("Hear when someone adds to the list or joins.") },
+                    leadingContent = { Icon(Icons.Outlined.Notifications, null) },
+                    modifier = Modifier.clickable { askPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS) }.testTag("settings.notifications"))
+            }
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+
             SectionLabel("About")
             ListItem(headlineContent = { Text("Version") }, trailingContent = { Text("${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})") })
             ListItem(headlineContent = { Text("Server") }, trailingContent = { Text(BuildConfig.API_BASE_URL.removePrefix("https://").removePrefix("http://")) })
@@ -136,7 +159,7 @@ fun SettingsScreen(container: AppContainer, modifier: Modifier = Modifier) {
         modifier = Modifier.exposeTestTags(),
         onDismissRequest = { confirmSignOut = false }, title = { Text("Sign out of Household Helper?") },
         text = { Text("Your lists stay in the household; sign back in any time.") },
-        confirmButton = { TextButton(onClick = { confirmSignOut = false; container.auth.signOut() }, modifier = Modifier.testTag("settings.signOut.confirm")) { Text("Sign out", color = MaterialTheme.colorScheme.error) } },
+        confirmButton = { TextButton(onClick = { confirmSignOut = false; scope.launch { container.auth.signOut(context) } }, modifier = Modifier.testTag("settings.signOut.confirm")) { Text("Sign out", color = MaterialTheme.colorScheme.error) } },
         dismissButton = { TextButton(onClick = { confirmSignOut = false }) { Text("Cancel") } },
     )
 }

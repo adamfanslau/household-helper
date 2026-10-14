@@ -28,6 +28,17 @@ swipes; left = delete, right = bought), `type "text"`, `clear` (empties the focu
 (deep link into the running app), `night yes|no`, `fontscale 2.0` (back to `1.0`), `log [n]` (logcat tag `HH`),
 `unit`, `uitest` (Compose `SmokeTest`, needs a fresh seed: `stack.sh reset` first).
 
+Push (the dev flavor never talks to FCM; the handling is driven with an intent extra):
+
+```bash
+scripts/dev/android.sh taptext Allow            # POST_NOTIFICATIONS prompt on the first launch with a household (API 33+)
+adb -s emulator-5554 shell am start -n com.householdhelper.app.dev/com.householdhelper.app.MainActivity \
+  --es HH_FAKE_PUSH "'<household_id>~<title>~<body>'"     # single quotes inside: adb's shell splits on spaces
+scripts/dev/android.sh log 10 | grep -E 'suppressed|posted'  # current household on screen → suppressed
+adb -s emulator-5554 shell cmd statusbar expand-notifications; scripts/dev/android.sh taptext "<body>"   # tap → switches household
+adb -s emulator-5554 shell am start -n … --es household_id <id>   # what a background-notification tap delivers (cold start too)
+```
+
 Assert from the tree / API / log, read `screen.png` only for layout questions. `launch none` relaunches
 like a tap on the launcher icon (session + household must survive).
 
@@ -40,7 +51,7 @@ like a tap on the launcher icon (session + household must survive).
 `edit.save`, `shops.input`, `shops.add`, `shops.row.<name>`, `shops.delete.confirm`, `shop.input`, `shop.add`,
 `shop.toList.<name>`, `shop.menu`, `shop.rename.input`, `settings.name`, `settings.email`, `settings.inviteCode`,
 `settings.share`, `settings.regenerate`, `settings.household.<name>`, `settings.addHousehold`, `settings.rename.input`,
-`settings.signOut`, `settings.signOut.confirm`, `connection.reconnecting`, `snackbar`.
+`settings.notifications`, `settings.signOut`, `settings.signOut.confirm`, `connection.reconnecting`, `snackbar`.
 
 Deep links: `householdhelper://list | shops | shops/<uuid> | settings | join/<CODE>`.
 
@@ -57,5 +68,8 @@ Deep links: `householdhelper://list | shops | shops/<uuid> | settings | join/<CO
 - Configuration changes (night mode, font scale) recreate the Activity; deep-link intents are handled only
   on a fresh start (`savedInstanceState == null`), so the current tab survives them.
 - First Gradle build is minutes (dependency download); keep the daemon (never `--stop`).
-- The dev flavor's `google-services.json` is fabricated; Firebase Auth talks to the emulator only.
+- The dev flavor's `google-services.json` is fabricated; Firebase Auth talks to the emulator only and
+  FCM auto-init is off in `src/dev/AndroidManifest.xml` (Installations would reject the fake key).
+  Google sign-in (`signin.google`) is disabled in dev: it needs the prod flavor's Web client id.
+- `adb shell pm clear com.householdhelper.app.dev` resets the notification permission (and the session).
 - Seed and users: see the `dev-stack` skill (alice owns Mock Household, bob The Neighbors, carol none).

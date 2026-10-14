@@ -19,6 +19,15 @@ loop; `apps/android/.claude/skills/verify/SKILL.md` documents driving it. Unit t
 grouping and SSE change application; `:app:connectedDevDebugAndroidTest` runs a Compose smoke test
 against the local stack (`scripts/dev/android.sh uitest` after `stack.sh reset`).
 
+Push and sign-in: `data/PushRegistrar.kt` creates the "household" channel, asks for
+`POST_NOTIFICATIONS` once a household exists, sends the FCM token to `PUT /v1/me/push-tokens` and
+deletes it before sign-out; `HHMessagingService` hands foreground messages to it (no banner for the
+household on screen, SSE already updated it) and the FCM SDK posts background ones itself (channel
+and icon in the manifest). A tap carries `household_id` and switches to that household. Google
+sign-in goes through Credential Manager with the Firebase project's **Web client id**, read from the
+Gradle property `hh.googleWebClientId` (put it in `~/.gradle/gradle.properties`; CI passes it as a
+secret). The dev flavor has neither (fabricated Firebase project, FCM auto-init off).
+
 Interaction model (see the plan's §3.0): tap a row = bought / un-buy, swipe right = bought, swipe left
 = delete with a 5 s Undo snackbar, long-press = sheet with Move to shop / Edit / Mark bought / Delete.
 The add bar sits above the keyboard. Realtime arrives over SSE (`data/EventsClient.kt`, reconnects
