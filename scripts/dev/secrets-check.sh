@@ -18,17 +18,21 @@ forbidden_paths='(^|/)\.env(\.[^/]*)?$|GoogleService-Info\.plist$|google-service
 # Exceptions: templates and the fabricated dev-flavor Firebase config.
 allowed_paths='\.example$|^apps/android/app/src/dev/google-services\.json$'
 
-# Secret-shaped content. Keep patterns specific; dev fakes use "demo-" / "password" on purpose.
-content_patterns=(
+# Credential shapes that GitHub secret scanning also flags: an allow comment never silences these,
+# because even a fabricated value shaped like a key raises an alert on push. Make fakes look fake.
+hard_patterns=(
   '-----BEGIN [A-Z ]*PRIVATE KEY-----'
-  '"private_key"[[:space:]]*:'              # GCP service-account JSON
-  'sb_secret_[A-Za-z0-9_-]{10,}'            # Supabase secret key
-  'eyJ[A-Za-z0-9_-]{20,}\.eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}'   # JWT
   'AIza[0-9A-Za-z_-]{35}'                   # Google API key
   'ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{20,}'
   'xox[baprs]-[A-Za-z0-9-]{10,}'            # Slack
   'AKIA[0-9A-Z]{16}'                        # AWS
   'sk_live_[A-Za-z0-9]{16,}|sk-[A-Za-z0-9]{32,}'
+)
+# Secret-shaped content. Keep patterns specific; dev fakes use "demo-" / "password" on purpose.
+content_patterns=(
+  '"private_key"[[:space:]]*:'              # GCP service-account JSON
+  'sb_secret_[A-Za-z0-9_-]{10,}'            # Supabase secret key
+  'eyJ[A-Za-z0-9_-]{20,}\.eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}'   # JWT
   '(SECRET|TOKEN|PASSWORD|API_KEY)[A-Z_]*=[^[:space:]"'"'"']{12,}'   # KEY=realvalue in env-ish files
 )
 
@@ -47,6 +51,13 @@ while IFS= read -r f; do
   fi
   # skip binaries
   if [ "$(show "$f" | head -c 4000 | tr -dc '\000' | wc -c)" -gt 0 ]; then continue; fi
+  for pat in "${hard_patterns[@]}"; do
+    hits="$(show "$f" | grep -nE -e "$pat" | head -3 || true)"
+    if [ -n "$hits" ]; then
+      while IFS= read -r h; do echo "SECRET MATCH $f:${h%%:*}  ($pat) — credential shape, cannot be allowlisted"; done <<< "$hits"
+      findings=$((findings+1))
+    fi
+  done
   for pat in "${content_patterns[@]}"; do
     hits="$(show "$f" | grep -nE -e "$pat" | grep -v 'secrets-check: allow' | head -3 || true)"
     if [ -n "$hits" ]; then

@@ -29,7 +29,10 @@ compromised even after removal from history: rotate it, don't just delete it.
   publishable key or a fabricated demo value); never to silence a real one. Do not bypass the
   hooks (`--no-verify`) for any reason.
 - **Dev fakes must look fake**: `demo-api-key`, `password`, `MOCK1234`, fabricated Firebase app
-  ids. Never copy a real value "just for local testing".
+  ids. Never copy a real value "just for local testing", and never shape a fake like a real
+  credential (`AIza…`, `ghp_…`, `AKIA…`, PEM blocks): GitHub secret scanning alerts on the shape
+  alone, and `secrets-check.sh` refuses those even with an allow comment. When an SDK validates
+  the shape (Firebase Installations wants 39 chars starting with `A`), satisfy only what it checks.
 - **Logs and output**: never print tokens, sessions, keys or full `Authorization` headers; the
   dev scripts write tokens only to stdout when explicitly asked (`token.sh`), never to `.dev/logs`.
 
