@@ -45,5 +45,6 @@ nonisolated enum A11y {
     static let settingsSignOutConfirm = "settings.signOut.confirm"
     static let settingsRegenerate = "settings.regenerate"
     static let settingsAddHousehold = "settings.addHousehold"
+    static let settingsNotifications = "settings.notifications"
     static func settingsHousehold(_ name: String) -> String { "settings.household.\(name)" }
 }

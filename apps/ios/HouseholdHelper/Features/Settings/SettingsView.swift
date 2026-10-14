@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var confirmSignOut = false
     @State private var renaming = false
     @State private var newName = ""
+    private let push = PushRegistrar.shared
 
     private var version: String {
         let v = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
@@ -73,6 +74,21 @@ struct SettingsView: View {
                         .accessibilityIdentifier(A11y.settingsAddHousehold)
                 }
                 Section {
+                    switch push.status {
+                    case .authorized:
+                        LabeledContent("Notifications", value: "On")
+                    case .denied:
+                        Button("Notifications are off — open Settings", systemImage: "bell.slash") {
+                            if let url = URL(string: UIApplication.openNotificationSettingsURLString) { UIApplication.shared.open(url) }
+                        }
+                    case .notAsked, .unknown:
+                        Button("Enable notifications", systemImage: "bell") { Task { await push.requestAuthorization() } }
+                    }
+                } footer: {
+                    Text("Hear when someone adds to the list or joins.")
+                }
+                .accessibilityIdentifier(A11y.settingsNotifications)
+                Section {
                     LabeledContent("Version", value: version)
                     LabeledContent("Server", value: Env.apiBaseURL.host() ?? "")
                 } header: {
@@ -86,6 +102,7 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .task(id: households.current?.id) { await households.loadInvites() }
+            .task { await push.refreshStatus() }
             .sheet(isPresented: $showOnboarding) {
                 OnboardingView(isSheet: true)
             }
@@ -96,7 +113,7 @@ struct SettingsView: View {
             }
             // An alert, not a confirmationDialog: iOS 26 shows dialogs from Form rows as popovers.
             .alert("Sign out of Household Helper?", isPresented: $confirmSignOut) {
-                Button("Sign out", role: .destructive) { auth.signOut() }
+                Button("Sign out", role: .destructive) { Task { await auth.signOut() } }
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Your lists stay in the household; sign back in any time.")

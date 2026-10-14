@@ -32,6 +32,11 @@ nonisolated final class ApiClient: Sendable {
         try JSON.decode(T.self, from: try await perform("PATCH", path, body: try JSON.makeEncoder().encode(body)))
     }
 
+    /// 204 routes (push tokens).
+    func put<B: Encodable>(_ path: String, _ body: B) async throws {
+        _ = try await perform("PUT", path, body: try JSON.makeEncoder().encode(body))
+    }
+
     func delete(_ path: String) async throws {
         _ = try await perform("DELETE", path, body: nil)
     }

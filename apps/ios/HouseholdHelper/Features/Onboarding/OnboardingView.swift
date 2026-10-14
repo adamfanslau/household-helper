@@ -66,7 +66,7 @@ struct OnboardingView: View {
                     ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 } else {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("Sign out") { auth.signOut() }
+                        Button("Sign out") { Task { await auth.signOut() } }
                             .accessibilityIdentifier(A11y.settingsSignOut)
                     }
                 }

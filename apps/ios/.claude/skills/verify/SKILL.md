@@ -26,6 +26,15 @@ scripts/dev/snap.sh ios "$U" settings                        # .dev/shots/settin
 scripts/dev/assert.sh tree settings 'settings.signOut'
 ```
 
+Push (dev builds never talk to APNs/FCM; the handling is driven with `simctl push`):
+
+```bash
+scripts/dev/ios.sh allow "$U"                  # the permission alert shows on the first launch with a household
+scripts/dev/ios.sh push "$U" <household_id> "Mock Household" "Bob added Coffee"   # same keys hh-api sends
+scripts/dev/ios.sh log "$U" 20 | grep push    # "suppressed push for the current household" when it is on screen
+scripts/dev/ios.sh tap "$U" 201 70            # the banner is SpringBoard's (not in the app tree): tap its centre within ~3 s
+```
+
 Assert from the tree, the API (`assert.sh api alice /v1/… '<jq>'`) and the log before reading
 `screen.png`; read the PNG for layout questions only. `launch "$U" none` relaunches like a tap on
 the home screen (keeps the Firebase session and the selected household) — test it after any
@@ -68,6 +77,12 @@ Neighbors" (`JOIN5678`) and must join `MOCK1234` to see the list.
   `.confirmationDialog`, for confirmations: iOS 26 renders dialogs from Form rows as popovers.
 - After a sign-out, a launch made with `HH_UITEST_USER` signs the same user straight back in. To
   look at the sign-in screen, `ios.sh launch "$U" none` first.
+- Push: a banner for the household on screen is suppressed by design (the list already updated over
+  SSE); push for another household the user is a member of (join `JOIN5678` as alice through the API
+  before launching). A tap while the app runs switches household (log `opened household …`). With the
+  app terminated, AXe taps never reach the home screen (not the banner, not even an app icon), so the
+  cold-start tap path (`pendingHouseholdID`, applied once households load) is verified on a device.
+- `ios.sh springboard "$U" "<label regex>"` taps any SpringBoard element (alert buttons) by label.
 - The selected household persists across launches (UserDefaults); after joining another one, switch
   back in Settings (`settings.household.<name>`) before asserting on Mock Household data.
 

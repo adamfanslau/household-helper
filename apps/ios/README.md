@@ -27,11 +27,21 @@ variables `GOOGLE_SERVICE_INFO_PLIST_B64` (secret) and `HH_TEAM_ID`.
 
 ## Console setup (once)
 
-- Apple Developer: App ID `com.householdhelper.app` with **Sign in with Apple** (and Push for step 11);
-  Xcode-managed signing with your team.
+- Apple Developer: App ID `com.householdhelper.app` with **Sign in with Apple** and **Push
+  Notifications**; Xcode-managed signing with your team. An APNs auth key (.p8) is uploaded to
+  Firebase → Cloud Messaging so FCM can reach iOS; the app itself never holds it.
 - Firebase: Authentication providers **Google** and **Apple**; register the iOS app and download the
   plist. Google Sign-In needs no extra OAuth client; Firebase creates it (`CLIENT_ID` / `REVERSED_CLIENT_ID`).
 - Apple provider in Firebase needs the Services ID / key only for web; for native iOS the bundle id is enough.
+
+## Push
+
+`Services/PushRegistrar.swift` asks for permission once a household exists, forwards the APNs token
+to FCM by hand (swizzling is off: `FirebaseAppDelegateProxyEnabled = NO`), sends the FCM token to
+`PUT /v1/me/push-tokens` and deletes it before sign-out. A push for the household on screen is
+suppressed (SSE already updated the list); tapping any other push switches to that household.
+Dev builds skip APNs/FCM entirely (`HH_EMULATOR`); `scripts/dev/ios.sh push` drives the handling with
+`simctl push`. Settings shows the permission state and a shortcut to the system settings when denied.
 
 ## Verify
 

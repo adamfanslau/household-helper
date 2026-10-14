@@ -26,6 +26,7 @@ struct RootView: View {
             }
         }
         .onChange(of: auth.uid) { _, uid in
+            PushRegistrar.shared.authChanged(uid: uid)
             events.disconnect()
             households.reset()
             list.clear()
@@ -38,6 +39,14 @@ struct RootView: View {
             guard let hid else { events.disconnect(); return }
             wire()
             events.connect(householdID: hid)
+        }
+        .onChange(of: households.loaded) { _, loaded in
+            if loaded { PushRegistrar.shared.openPending() }
+        }
+        .task(id: households.current?.id) {
+            // Ask for notifications only once there is a household to be notified about.
+            guard households.current != nil else { return }
+            await PushRegistrar.shared.requestAuthorizationIfNeeded()
         }
         .onChange(of: scenePhase) { _, phase in
             guard let hid = households.current?.id else { return }
@@ -62,7 +71,7 @@ struct RootView: View {
             // even when another dev user's session survived from the previous launch.
             guard auth.ready, let who = Env.uiTestUser else { return }
             if auth.email != "\(who)@dev.local" {
-                if auth.user != nil { auth.signOut() }
+                if auth.user != nil { await auth.signOut() }
                 try? await auth.signInDev(who)
             }
             #endif

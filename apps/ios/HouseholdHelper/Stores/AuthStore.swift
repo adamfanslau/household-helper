@@ -11,6 +11,8 @@ final class AuthStore {
     private(set) var user: User?
     private(set) var ready = false
     private var handle: AuthStateDidChangeListenerHandle?
+    /// Runs while the ID token still works (push token removal).
+    var beforeSignOut: (() async -> Void)?
 
     init() {
         handle = Auth.auth().addStateDidChangeListener { _, user in
@@ -107,7 +109,8 @@ final class AuthStore {
         }
     }
 
-    func signOut() {
+    func signOut() async {
+        await beforeSignOut?()
         GIDSignIn.sharedInstance.signOut()
         try? Auth.auth().signOut()
     }

@@ -1,5 +1,6 @@
 import FirebaseAuth
 import FirebaseCore
+import FirebaseMessaging
 
 
 enum FirebaseSetup {
@@ -9,8 +10,10 @@ enum FirebaseSetup {
         // Auth emulator accepts any API key. Must run before the first Auth.auth() use.
         let options = FirebaseOptions(googleAppID: "1:123456789012:ios:0123456789abcdef", gcmSenderID: "123456789012")
         options.projectID = "demo-household-helper"
-        options.apiKey = "demo-api-key"
+        // Installations validates the shape (AIza + 35 chars) even though nothing is sent to Google.
+        options.apiKey = "AIzaSyDemoHouseholdHelperDev00000000000" // secrets-check: allow (fabricated, emulator only)
         FirebaseApp.configure(options: options)
+        Messaging.messaging().isAutoInitEnabled = false // no FCM against the fabricated project
         if let host = Env.authEmulatorHost {
             let parts = host.split(separator: ":")
             Auth.auth().useEmulator(withHost: String(parts.first ?? "127.0.0.1"), port: Int(parts.last ?? "9099") ?? 9099)

@@ -12,6 +12,9 @@
 #   ios.sh type <udid> "text"
 #   ios.sh swipe <udid> up|down|left|right [id]
 #   ios.sh open <udid> <url>             open a householdhelper:// link and confirm the system "Open in…?" prompt
+#   ios.sh allow <udid>                  tap "Allow" on the system notification-permission alert
+#   ios.sh push <udid> <household_id> "<title>" "<body>" [type]   deliver a push like hh-api's (simctl push)
+#   ios.sh springboard <udid> "<label>"  tap a SpringBoard element (banner, alert button) by label
 #   ios.sh home <udid> | appearance <udid> light|dark | textsize <udid> default|ax5
 #   ios.sh log <udid> [n]                last n lines of the app's os_log (captured since launch)
 #   ios.sh unit | uitest <Class[/test]>  xcodebuild test
@@ -34,6 +37,16 @@ xcb() { # xcb <extra xcodebuild args...>
 open_link() {
   xcrun simctl openurl "$1" "$2" || return 1
   confirm_open "$1"
+}
+# SpringBoard owns alerts and banners: find the element by label in the system tree and tap its centre.
+springboard_tap() { # springboard_tap <udid> <label> [tries]
+  local pt
+  for _ in $(seq 1 "${3:-4}"); do
+    sleep 0.8
+    pt=$(axe describe-ui --udid "$1" 2>/dev/null | jq -r --arg l "$2" 'def walk(n): n, (n.children[]? | walk(.)); [.[] | walk(.)] | map(select((.AXLabel // "") | test($l))) | .[0].frame // empty | "\(.x + .width/2 | floor) \(.y + .height/2 | floor)"')
+    if [ -n "$pt" ]; then axe tap -x "${pt%% *}" -y "${pt##* }" --udid "$1" >/dev/null 2>&1 && return 0; fi
+  done
+  return 1
 }
 # The prompt belongs to SpringBoard, so tap its Open button by coordinates.
 confirm_open() {
@@ -67,6 +80,14 @@ case "$cmd" in
     [ -n "$link" ] && open_link "$udid" "$link"
     echo "launched $BUNDLE pid=$pid as=$who${link:+ link=$link}" ;;
   open) [ $# -eq 2 ] || usage; open_link "$1" "$2" && echo "opened $2" ;;
+  allow) [ $# -eq 1 ] || usage; springboard_tap "$1" '^Allow$' && echo "allowed notifications" || die "no Allow button on screen" ;;
+  springboard) [ $# -eq 2 ] || usage; springboard_tap "$1" "$2" && echo "tapped $2" || die "no SpringBoard element matching $2" ;;
+  push)
+    [ $# -ge 4 ] || usage; udid="$1"; hid="$2"; title="$3"; body="$4"; typ="${5:-shopping_list_items.insert}"
+    f="$DEV_DIR/push.apns"
+    jq -n --arg t "$title" --arg b "$body" --arg h "$hid" --arg y "$typ" \
+      '{"Simulator Target Bundle": "'"$BUNDLE"'", aps: {alert: {title: $t, body: $b}, sound: "default", "thread-id": $h}, household_id: $h, type: $y}' > "$f"
+    xcrun simctl push "$udid" "$BUNDLE" "$f" >/dev/null && echo "pushed to $hid: $body" ;;
   confirm) [ $# -eq 1 ] || usage; confirm_open "$1"; echo "confirmed" ;;
   shot)
     [ $# -eq 2 ] || usage; mkdir -p "$SHOT_DIR/$2"; xcrun simctl io "$1" screenshot "$SHOT_DIR/$2/screen.png" >/dev/null 2>&1 && echo "$SHOT_DIR/$2/screen.png" ;;
