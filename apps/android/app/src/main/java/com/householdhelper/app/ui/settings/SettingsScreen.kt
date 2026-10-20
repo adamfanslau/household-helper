@@ -21,6 +21,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -53,6 +55,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import com.householdhelper.app.ui.theme.Brand
+import com.householdhelper.app.ui.Ground
+import com.householdhelper.app.ui.groundTopBarColors
 import androidx.compose.ui.Modifier
 import com.householdhelper.app.ui.exposeTestTags
 import androidx.compose.ui.platform.LocalContext
@@ -90,7 +94,8 @@ fun SettingsScreen(container: AppContainer, modifier: Modifier = Modifier) {
     var newName by remember { mutableStateOf("") }
     val code = invites.firstOrNull { it.revokedAt == null }?.code
 
-    Scaffold(modifier = modifier, topBar = { TopAppBar(title = { Text("Household") }) }) { padding ->
+    Ground(modifier = modifier) {
+    Scaffold(containerColor = Color.Transparent, contentWindowInsets = WindowInsets(0), topBar = { TopAppBar(colors = groundTopBarColors(), title = { Text("Household") }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) {
             // The home card: this household, and who you are in it. Tap to rename.
             Surface(
@@ -137,6 +142,7 @@ fun SettingsScreen(container: AppContainer, modifier: Modifier = Modifier) {
                 SectionLabel("Switch household")
                 households.forEach { h ->
                     ListItem(
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         headlineContent = { Text(h.name) },
                         trailingContent = { if (h.id == current?.id) Icon(Icons.Outlined.Check, contentDescription = "selected", tint = MaterialTheme.colorScheme.primary) },
                         modifier = Modifier.fillMaxWidth().clickable { scope.launch { container.households.select(h) } }.testTag("settings.household.${h.name}"),
@@ -144,29 +150,29 @@ fun SettingsScreen(container: AppContainer, modifier: Modifier = Modifier) {
                 }
             }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            ListItem(headlineContent = { Text("Create or join another household") }, leadingContent = { Icon(Icons.Outlined.Add, null) },
+            ListItem(colors = ListItemDefaults.colors(containerColor = Color.Transparent), headlineContent = { Text("Create or join another household") }, leadingContent = { Icon(Icons.Outlined.Add, null) },
                 modifier = Modifier.clickable { showAdd = true }.testTag("settings.addHousehold"))
 
             SectionLabel("Notifications")
             val pushStatus by container.push.status.collectAsStateWithLifecycle()
             val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { container.push.permissionResult(it) }
             when (pushStatus) {
-                PushRegistrar.Status.AUTHORIZED -> ListItem(headlineContent = { Text("Notifications") }, supportingContent = { Text("Hear when someone adds to the list or joins.") },
+                PushRegistrar.Status.AUTHORIZED -> ListItem(colors = ListItemDefaults.colors(containerColor = Color.Transparent), headlineContent = { Text("Notifications") }, supportingContent = { Text("Hear when someone adds to the list or joins.") },
                     trailingContent = { Text("On") }, modifier = Modifier.testTag("settings.notifications"))
-                PushRegistrar.Status.DENIED -> ListItem(headlineContent = { Text("Notifications are off") }, supportingContent = { Text("Turn them on in system settings.") },
+                PushRegistrar.Status.DENIED -> ListItem(colors = ListItemDefaults.colors(containerColor = Color.Transparent), headlineContent = { Text("Notifications are off") }, supportingContent = { Text("Turn them on in system settings.") },
                     leadingContent = { Icon(Icons.Outlined.NotificationsOff, null) },
                     modifier = Modifier.clickable {
                         context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))
                     }.testTag("settings.notifications"))
-                PushRegistrar.Status.NOT_ASKED -> ListItem(headlineContent = { Text("Enable notifications") }, supportingContent = { Text("Hear when someone adds to the list or joins.") },
+                PushRegistrar.Status.NOT_ASKED -> ListItem(colors = ListItemDefaults.colors(containerColor = Color.Transparent), headlineContent = { Text("Enable notifications") }, supportingContent = { Text("Hear when someone adds to the list or joins.") },
                     leadingContent = { Icon(Icons.Outlined.Notifications, null) },
                     modifier = Modifier.clickable { askPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS) }.testTag("settings.notifications"))
             }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
             SectionLabel("About")
-            ListItem(headlineContent = { Text("Version") }, trailingContent = { Text("${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})") })
-            ListItem(headlineContent = { Text("Server") }, trailingContent = { Text(BuildConfig.API_BASE_URL.removePrefix("https://").removePrefix("http://")) })
+            ListItem(colors = ListItemDefaults.colors(containerColor = Color.Transparent), headlineContent = { Text("Version") }, trailingContent = { Text("${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})") })
+            ListItem(colors = ListItemDefaults.colors(containerColor = Color.Transparent), headlineContent = { Text("Server") }, trailingContent = { Text(BuildConfig.API_BASE_URL.removePrefix("https://").removePrefix("http://")) })
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -175,6 +181,7 @@ fun SettingsScreen(container: AppContainer, modifier: Modifier = Modifier) {
                 }
             }
         }
+    }
     }
 
     if (showAdd) JoinSheet(container, code = null, onDismiss = { showAdd = false })

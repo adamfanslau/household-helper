@@ -107,6 +107,12 @@ import com.householdhelper.app.data.ListGrouping
 import com.householdhelper.app.data.ShoppingListItem
 import com.householdhelper.app.ui.settings.shareInvite
 import com.householdhelper.app.ui.BrandMark
+import com.householdhelper.app.ui.Ground
+import com.householdhelper.app.ui.groundTopBarColors
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.derivedStateOf
 import com.householdhelper.app.ui.onboarding.JoinSheet
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -147,6 +153,7 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
     }
 
     val sections = remember(items, shops) { ListGrouping.sections(items, shops) }
+    val listState = rememberLazyListState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val code = invites.firstOrNull { it.revokedAt == null }?.code
     val households by container.households.households.collectAsStateWithLifecycle()
@@ -158,9 +165,11 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
         when { open == 0 -> "Nothing to buy"; basket > 0 -> "$open to buy · $basket in the basket"; else -> "$open to buy" }
     }
 
+    Ground(modifier = modifier) {
     Scaffold(
-        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,   // cards sit on a tinted ground
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = Color.Transparent,   // the Ground behind carries the tint and the glow
+        contentWindowInsets = WindowInsets(0), // the top bar takes the status bar, HomeScreen's bar the bottom
         topBar = {
             TopAppBar(
                 title = {
@@ -211,7 +220,7 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
                     }
                 },
                 scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow, scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer),
+                colors = groundTopBarColors(),
             )
         },
         snackbarHost = { SnackbarHost(snackbar, Modifier.testTag("snackbar")) },
@@ -244,11 +253,18 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
                         Spacer(Modifier.height(1.dp).testTag("list.empty"))
                     }
                 }
-                else -> LazyColumn(Modifier.fillMaxSize().testTag("list"), contentPadding = PaddingValues(bottom = 24.dp)) {
+                else -> LazyColumn(Modifier.fillMaxSize().testTag("list"), state = listState, contentPadding = PaddingValues(bottom = 24.dp)) {
+                    var index = 0   // flat item index, so a header knows when it is stuck at the top
                     sections.needed.forEach { section ->
+                        val headerIndex = index++
                         stickyHeader(key = "h-${section.id}") {
                             val tint = if (section.shopId == null) MaterialTheme.colorScheme.outline else Brand.shopColor(section.title)
-                            Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                            // See-through over the glow at rest; opaque only once rows scroll under it.
+                            val stuck by remember(headerIndex) {
+                                derivedStateOf { listState.firstVisibleItemIndex > headerIndex || (listState.firstVisibleItemIndex == headerIndex && listState.firstVisibleItemScrollOffset > 0) }
+                            }
+                            val ground by animateColorAsState(if (stuck) MaterialTheme.colorScheme.surfaceContainerLow else Color.Transparent, label = "header-ground")
+                            Surface(color = ground) {
                                 Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 8.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         ShopGlyph(name = section.shopId?.let { section.title }, size = 30.dp)
@@ -279,6 +295,7 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
                                 }
                             }
                         }
+                        index += section.items.size + 1 + (if (section.shopId == null) 1 else 0)   // rows, gap, unsorted hint
                         itemsIndexed(section.items, key = { _, it -> it.id }) { index, item ->
                             // Rows of one shop sit in one card (top/bottom corners on the first/last row),
                             // so a shop header and its products read as a group, not a run of lines.
@@ -327,6 +344,7 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
                 }
             }
         }
+    }
     }
 
     sheetItem?.let { item ->

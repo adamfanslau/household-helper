@@ -113,12 +113,11 @@ struct ShopDetailView: View {
                 }
                 .listStyle(.insetGrouped)
                 .scrollContentBackground(.hidden)
-                .background { Color(.systemGroupedBackground).ignoresSafeArea() }
-                .background { HeroGlow(tint: Brand.shopColor(shop?.name ?? "")) }
                 .animation(.snappy, value: needed)
                 .refreshable { await list.refresh() }
             }
         }
+        .background { ScreenGround(tint: Brand.shopColor(shop?.name ?? ""), strength: 0.42) }
         .safeAreaBar(edge: .bottom) {
             if basketCount > 0 {
                 Button {

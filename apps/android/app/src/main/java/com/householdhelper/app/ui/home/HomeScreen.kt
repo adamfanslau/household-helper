@@ -8,6 +8,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -56,6 +57,8 @@ fun HomeScreen(container: AppContainer) {
     LaunchedEffect(Unit) { if (container.push.shouldAsk()) askPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS) }
     Box(Modifier.fillMaxSize()) {
         Scaffold(
+            // Tabs draw their own glow up to the top edge: leave the status bar to each tab's top bar.
+            contentWindowInsets = WindowInsets(0),
             bottomBar = {
                 NavigationBar {
                     AppRouter.Tab.entries.forEach { t ->

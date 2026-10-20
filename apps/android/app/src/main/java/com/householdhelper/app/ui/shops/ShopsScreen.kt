@@ -97,6 +97,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import com.householdhelper.app.data.ShoppingListItem
 import com.householdhelper.app.ui.SparkGlyph
+import com.householdhelper.app.ui.Ground
+import com.householdhelper.app.ui.groundTopBarColors
+import androidx.compose.foundation.layout.WindowInsets
 
 @Serializable
 data object ShopsList : NavKey
@@ -137,9 +140,12 @@ private fun ShopsListScreen(container: AppContainer, onOpen: (Shop) -> Unit) {
 
     fun add() { val n = draft.trim(); if (n.isEmpty()) return; draft = ""; scope.launch { container.list.addShop(n) } }
 
+    Ground {
     Scaffold(
+        containerColor = Color.Transparent,
+        contentWindowInsets = WindowInsets(0),
         topBar = {
-            TopAppBar(title = {
+            TopAppBar(colors = groundTopBarColors(), title = {
                 Column {
                     Text("Shops")
                     if (shops.isNotEmpty()) Text("Most to buy first", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -228,6 +234,7 @@ private fun ShopsListScreen(container: AppContainer, onOpen: (Shop) -> Unit) {
             }
         }
     }
+    }
     pendingDelete?.let { shop ->
         AlertDialog(
             modifier = Modifier.exposeTestTags(),
@@ -257,9 +264,13 @@ fun ShopDetailScreen(container: AppContainer, shopId: String, onBack: () -> Unit
     var confirmDelete by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf("") }
 
+    Ground(tint = Brand.shopColor(shop?.name ?: ""), strength = 0.42f) {
     Scaffold(
+        containerColor = Color.Transparent,
+        contentWindowInsets = WindowInsets(0),
         topBar = {
             TopAppBar(
+                colors = groundTopBarColors(),
                 title = { Text(shop?.name ?: "Shop") },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back") } },
                 actions = {
@@ -344,6 +355,7 @@ fun ShopDetailScreen(container: AppContainer, shopId: String, onBack: () -> Unit
             pile("Still to find", toFind)
             pile("In the basket", inBasket)
         }
+    }
     }
     if (renaming) AlertDialog(
         modifier = Modifier.exposeTestTags(),

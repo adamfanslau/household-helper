@@ -46,22 +46,48 @@ nonisolated enum Brand {
     }
 
     static let unsortedColor = Color.secondary
+
+    /// The screens' ground: a green-grey instead of the system grouped grey (#F2F5F3 / #101513).
+    static let ground = Color(UIColor { trait in
+        trait.userInterfaceStyle == .dark ? UIColor(red: 0.063, green: 0.082, blue: 0.075, alpha: 1) : UIColor(red: 0.949, green: 0.961, blue: 0.953, alpha: 1)
+    })
 }
 
-/// Soft brand glow that sits behind a large navigation title and fades into the background.
+/// Soft brand glow that sits behind a large navigation title and fades into the ground
+/// (design canvas: 26 % → 6 % at 60 % → 0 over the top 320 pt; a shop's own colour at 42 %).
 struct HeroGlow: View {
     var tint: Color = Brand.primary
+    var strength: Double = 0.26
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         LinearGradient(
-            colors: [tint.opacity(scheme == .dark ? 0.35 : 0.22), tint.opacity(0.06), .clear],
+            stops: [
+                .init(color: tint.opacity(scheme == .dark ? strength * 1.4 : strength), location: 0),
+                .init(color: tint.opacity(strength * 0.23), location: 0.6),
+                .init(color: .clear, location: 1),
+            ],
             startPoint: .top, endPoint: .bottom
         )
-        .frame(height: 360)
+        .frame(height: 340)
         .frame(maxHeight: .infinity, alignment: .top)
         .ignoresSafeArea()
         .allowsHitTesting(false)
+    }
+}
+
+/// Ground + glow for a whole screen. Use as one `.background { ScreenGround() }`: two stacked
+/// `.background` modifiers would put the glow *behind* the opaque ground and hide it.
+struct ScreenGround: View {
+    var tint: Color = Brand.primary
+    var strength: Double = 0.26
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            Brand.ground
+            HeroGlow(tint: tint, strength: strength)
+        }
+        .ignoresSafeArea()
     }
 }
 

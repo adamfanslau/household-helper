@@ -23,6 +23,7 @@ struct ListView: View {
                     ContentUnavailableView("No household", systemImage: "house")
                 }
             }
+            .background { ScreenGround() }
             .navigationTitle("Shopping")
             .navigationSubtitle(summary)
             .toolbar {
@@ -169,8 +170,6 @@ struct ListView: View {
             .listSectionSpacing(18)
             .contentMargins(.bottom, 88, for: .scrollContent)   // room to scroll past the floating +
             .scrollContentBackground(.hidden)
-            .background { Color(.systemGroupedBackground).ignoresSafeArea() }
-            .background { HeroGlow() }
             .scrollDismissesKeyboard(.interactively)
             .animation(.snappy, value: sections)
             .refreshable { await list.load(householdID: household.id) }

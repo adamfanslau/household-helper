@@ -76,12 +76,11 @@ struct ShopsView: View {
                     }
                     .listStyle(.insetGrouped)
                     .scrollContentBackground(.hidden)
-                    .background { Color(.systemGroupedBackground).ignoresSafeArea() }
-                    .background { HeroGlow() }
                     .animation(.snappy, value: list.shopsByActivity)
                     .refreshable { await list.refresh() }
                 }
             }
+            .background { ScreenGround() }
             .navigationTitle("Shops")
             .navigationSubtitle(list.shops.isEmpty ? "" : "Most to buy first")
             .navigationDestination(for: String.self) { shopID in

@@ -8,7 +8,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TopAppBarColors
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -89,8 +94,36 @@ fun EmptyState(icon: ImageVector, title: String, text: String, modifier: Modifie
     }
 }
 
-/** Soft brand glow behind a large title that fades into the surface. */
+/**
+ * Soft brand glow behind a large title that fades into the ground
+ * (design canvas: 26 % → 6 % at 60 % → 0 over the top 320 dp; a shop's own colour at 42 %).
+ */
 @Composable
-fun HeroGlow(tint: Color = Brand.Primary, modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().height(320.dp).background(Brush.verticalGradient(listOf(tint.copy(alpha = 0.22f), tint.copy(alpha = 0.06f), Color.Transparent))))
+fun HeroGlow(tint: Color = Brand.Primary, strength: Float = 0.26f, modifier: Modifier = Modifier) {
+    val top = if (isSystemInDarkTheme()) strength * 1.4f else strength
+    Box(
+        modifier.fillMaxWidth().height(320.dp).background(
+            Brush.verticalGradient(0f to tint.copy(alpha = top), 0.6f to tint.copy(alpha = strength * 0.23f), 1f to Color.Transparent),
+        ),
+    )
 }
+
+/**
+ * Ground + glow for a whole screen: the Scaffold inside must be transparent (`containerColor =
+ * Color.Transparent`, top bar `groundTopBarColors()`), or it paints over the glow.
+ */
+@Composable
+fun Ground(tint: Color = Brand.Primary, strength: Float = 0.26f, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLow)) {
+        HeroGlow(tint, strength)
+        content()
+    }
+}
+
+/** Top bar colours for a screen on [Ground]: see-through at rest, solid once content scrolls under it. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun groundTopBarColors(): TopAppBarColors = TopAppBarDefaults.topAppBarColors(
+    containerColor = Color.Transparent,
+    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+)

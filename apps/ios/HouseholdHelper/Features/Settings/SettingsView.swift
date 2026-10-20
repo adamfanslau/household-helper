@@ -125,6 +125,8 @@ struct SettingsView: View {
                         .accessibilityIdentifier(A11y.settingsSignOut)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background { ScreenGround() }
             .navigationTitle("Household")
             .task(id: households.current?.id) { await households.loadInvites() }
             .task { await push.refreshStatus() }
