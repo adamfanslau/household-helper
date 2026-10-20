@@ -7,6 +7,7 @@ nonisolated enum Brand {
     static let primaryDeep = Color(red: 0.05, green: 0.42, blue: 0.28)    // #0E6B47
     static let mint = Color(red: 0.78, green: 0.95, blue: 0.87)           // #C8F2DD
     static let basket = Color(red: 0.13, green: 0.72, blue: 0.45)         // tick green
+    static let leaf = Color(red: 0.12, green: 0.71, blue: 0.48)           // #1FB57A, light end of the Leaf gradient
     static let mintBright = Color(red: 0.44, green: 0.85, blue: 0.65)     // #6FD9A6, the mark's roof/spark on dark
     static let ink = Color(red: 0.06, green: 0.13, blue: 0.10)            // #10201A, the mark's dark tile
     static let inkSoft = Color(red: 0.12, green: 0.23, blue: 0.17)        // #1E3A2C
@@ -73,6 +74,32 @@ struct HeroGlow: View {
         .frame(maxHeight: .infinity, alignment: .top)
         .ignoresSafeArea()
         .allowsHitTesting(false)
+    }
+}
+
+/// The floating call to action: Leaf gradient, a light catch on the top edge so it reads convex,
+/// a deep-green soft shadow, and a press squash (design canvas: 135° #1FB57A→#0E6B47,
+/// shadow 0 10 24 at 38 %, inset top highlight at 35 %).
+struct ConvexButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(.white)
+            .background {
+                Circle().fill(LinearGradient(colors: [Brand.leaf, Brand.primaryDeep], startPoint: .topLeading, endPoint: .bottomTrailing))
+            }
+            .overlay(alignment: .top) {
+                Ellipse()
+                    .fill(RadialGradient(colors: [.white.opacity(0.30), .clear], center: .center, startRadius: 0, endRadius: 26))
+                    .frame(width: 46, height: 26)
+                    .offset(y: 3)
+            }
+            .overlay {
+                Circle().strokeBorder(LinearGradient(colors: [.white.opacity(0.45), .white.opacity(0)], startPoint: .top, endPoint: .bottom), lineWidth: 1.5)
+            }
+            .clipShape(Circle())
+            .shadow(color: Brand.primaryDeep.opacity(0.38), radius: 12, y: 10)
+            .scaleEffect(configuration.isPressed ? 0.93 : 1)
+            .animation(.snappy(duration: 0.2), value: configuration.isPressed)
     }
 }
 

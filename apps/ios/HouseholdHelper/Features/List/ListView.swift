@@ -247,11 +247,10 @@ struct ListView: View {
             showAdd = true
         } label: {
             Image(systemName: "plus")
-                .font(.title2.weight(.semibold))
-                .frame(width: 56, height: 56)
+                .font(.system(size: 26, weight: .semibold))
+                .frame(width: 60, height: 60)
         }
-        .buttonStyle(.glassProminent)
-        .buttonBorderShape(.circle)
+        .buttonStyle(ConvexButtonStyle())
         .padding(.trailing, 20)
         .padding(.bottom, 16)
         .accessibilityLabel("Add to the list")

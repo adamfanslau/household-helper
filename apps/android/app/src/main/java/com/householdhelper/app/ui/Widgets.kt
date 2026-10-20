@@ -8,7 +8,22 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -117,6 +132,40 @@ fun Ground(tint: Color = Brand.Primary, strength: Float = 0.26f, modifier: Modif
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLow)) {
         HeroGlow(tint, strength)
         content()
+    }
+}
+
+/**
+ * The floating call to action: Leaf gradient, a light catch on the top edge so it reads convex, a
+ * deep-green soft shadow and a press squash (design canvas: 135° #1FB57A→#0E6B47, shadow at 38 %,
+ * top highlight at 35 %).
+ */
+@Composable
+fun ConvexFab(onClick: () -> Unit, modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.93f else 1f, label = "fab-press")
+    val shape = RoundedCornerShape(20.dp)
+    Row(
+        modifier
+            .scale(scale)
+            .shadow(14.dp, shape, ambientColor = Brand.PrimaryDeep.copy(alpha = 0.38f), spotColor = Brand.PrimaryDeep.copy(alpha = 0.38f))
+            .background(Brush.linearGradient(listOf(Color(0xFF1FB57A), Brand.PrimaryDeep)), shape)
+            .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.45f), Color.Transparent)), shape)
+            .drawWithContent {
+                drawContent()
+                // Soft highlight across the top: the convex catch of light.
+                drawOval(
+                    Brush.radialGradient(listOf(Color.White.copy(alpha = 0.26f), Color.Transparent), center = Offset(size.width / 2, size.height * 0.1f), radius = size.width * 0.5f),
+                    topLeft = Offset(size.width * 0.1f, -size.height * 0.3f), size = Size(size.width * 0.8f, size.height * 0.8f),
+                )
+            }
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .height(56.dp)
+            .padding(start = 18.dp, end = 22.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CompositionLocalProvider(LocalContentColor provides Color.White) { content() }
     }
 }
 

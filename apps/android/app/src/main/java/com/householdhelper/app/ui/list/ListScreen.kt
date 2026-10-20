@@ -108,6 +108,7 @@ import com.householdhelper.app.data.ShoppingListItem
 import com.householdhelper.app.ui.settings.shareInvite
 import com.householdhelper.app.ui.BrandMark
 import com.householdhelper.app.ui.Ground
+import com.householdhelper.app.ui.ConvexFab
 import com.householdhelper.app.ui.groundTopBarColors
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.WindowInsets
@@ -226,14 +227,11 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
         snackbarHost = { SnackbarHost(snackbar, Modifier.testTag("snackbar")) },
         floatingActionButton = {
             // The one call to action: a floating + that opens the add sheet.
-            ExtendedFloatingActionButton(
-                onClick = { showAdd = true },
-                icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
-                text = { Text("Add") },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.testTag("list.add"),
-            )
+            ConvexFab(onClick = { showAdd = true }, modifier = Modifier.testTag("list.add")) {
+                Icon(Icons.Outlined.Add, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Add", style = MaterialTheme.typography.titleMedium)
+            }
         },
     ) { padding ->
         PullToRefreshBox(
