@@ -12,6 +12,8 @@ pass() { echo "PASS $*"; }; fail() { echo "FAIL $*"; FAILED=1; }; FAILED=0
 log "alice on iOS, bob on Android (bob joins MOCK1234 through the API)"
 "$S/api.sh" bob POST /v1/households/join '{"code":"MOCK1234"}' >/dev/null
 "$S/ios.sh" launch "$UDID_IPHONE17" alice >/dev/null; "$S/android.sh" launch bob >/dev/null; sleep 8
+# Fresh installs ask for notification permission first.
+"$S/ios.sh" allow "$UDID_IPHONE17" >/dev/null 2>&1 || true; "$S/android.sh" taptext Allow >/dev/null 2>&1 || true; sleep 1
 "$S/android.sh" tap tab.settings >/dev/null; sleep 1; "$S/android.sh" tap "settings.household.Mock Household" >/dev/null 2>&1 || true; "$S/android.sh" tap tab.list >/dev/null; sleep 2
 
 log "alice adds 'Oat milk' on iOS → must appear on Android within 5 s"
