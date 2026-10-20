@@ -64,10 +64,9 @@ struct ListView: View {
         if list.loading && list.items.isEmpty {
             ProgressView()
         } else if sections.isEmpty {
-            ContentUnavailableView {
-                Label("Nothing to buy", systemImage: "cart")
-            } description: {
-                Text("Add items as they run out at home.")
+            ScrollView {
+                EmptyState(symbol: "cart.fill", title: "Nothing to buy", text: "Tap + when something runs out at home. Everyone in the household sees it instantly.")
+                    .padding(.top, 60)
             }
             .refreshable { await list.load(householdID: household.id) }
         } else {
@@ -78,29 +77,10 @@ struct ListView: View {
                             row(item)
                         }
                     } header: {
-                        HStack {
-                            Text("\(section.title) · \(section.items.count)")
-                            Spacer()
-                            if section.basketCount > 0 {
-                                Button {
-                                    checkoutTick += 1
-                                    Task { await list.checkout(shopID: .some(section.shopID)) }
-                                } label: {
-                                    // Not a Label: List section headers render labels title-only.
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "cart.fill")
-                                        Text("Checkout \(section.basketCount)")
-                                    }
-                                    .font(.subheadline.weight(.semibold))
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .buttonBorderShape(.capsule)
-                                .controlSize(.small)
-                                .tint(.green)
-                                .accessibilityIdentifier(A11y.listCheckout(section.title))
-                            }
+                        ShopSectionHeader(section: section) {
+                            checkoutTick += 1
+                            Task { await list.checkout(shopID: .some(section.shopID)) }
                         }
-                        .textCase(nil)
                     } footer: {
                         if section.shopID == nil {
                             Text("Long-press an item to assign a shop.")
@@ -140,6 +120,11 @@ struct ListView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .listSectionSpacing(18)
+            .contentMargins(.bottom, 88, for: .scrollContent)   // room to scroll past the floating +
+            .scrollContentBackground(.hidden)
+            .background { Color(.systemGroupedBackground).ignoresSafeArea() }
+            .background { HeroGlow() }
             .scrollDismissesKeyboard(.interactively)
             .animation(.snappy, value: sections)
             .refreshable { await list.load(householdID: household.id) }
@@ -263,29 +248,22 @@ struct ItemRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: item.status == .needed ? "circle" : "checkmark.circle.fill")
-                .foregroundStyle(item.status == .inBasket ? Color.green : item.status == .bought ? Color.accentColor : Color.secondary)
-                .font(.title3)
-                .contentTransition(.symbolEffect(.replace))
+            CheckMark(status: item.status, tint: list.shop(item.shopId).map { Brand.shopColor($0.name) } ?? Brand.unsortedColor)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.name)
                     .strikethrough(item.status == .bought)
                     .foregroundStyle(item.status == .bought ? .secondary : .primary)
-                if let subtitle {
-                    Text(subtitle).font(.subheadline).foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    if let q = item.quantity, !q.isEmpty { Chip(text: q, tint: list.shop(item.shopId).map { Brand.shopColor($0.name) } ?? Brand.primary) }
+                    if let by = item.addedBy, by != auth.uid, let name = Self.actorName(by) {
+                        Text("added by \(name)").font(.caption).foregroundStyle(.secondary)
+                    }
                 }
             }
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityText)
-    }
-
-    private var subtitle: String? {
-        var parts: [String] = []
-        if let q = item.quantity, !q.isEmpty { parts.append(q) }
-        if let by = item.addedBy, by != auth.uid, let name = Self.actorName(by) { parts.append("added by \(name)") }
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     /// Display names arrive with push/member events later; dev uids are readable as-is.
@@ -444,5 +422,99 @@ struct ItemFormSheet: View {
                 await list.add(name: itemName, shopID: shopID, catalogItemID: product?.id, quantity: qty.isEmpty ? nil : qty)
             }
         }
+    }
+}
+
+/// Section header: shop identity, progress, and the Checkout call to action once something is ticked.
+struct ShopSectionHeader: View {
+    let section: ListGrouping.Section
+    let checkout: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                ShopGlyph(name: section.shopID == nil ? nil : section.title, size: 30)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(section.title)
+                        .font(.headline)
+                        .foregroundStyle(Color(.label))   // List headers default to secondary
+                    Text(section.basketCount > 0 ? "\(section.basketCount) of \(section.items.count) in the basket" : "\(section.items.count) to buy")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                if section.basketCount > 0 {
+                    Button(action: checkout) {
+                        // Not a Label: List section headers render labels title-only.
+                        HStack(spacing: 6) {
+                            Image(systemName: "cart.fill")
+                            Text("Checkout \(section.basketCount)")
+                        }
+                        .font(.subheadline.weight(.semibold))
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .buttonBorderShape(.capsule)
+                    .controlSize(.small)
+                    .tint(Brand.basket)
+                    .accessibilityIdentifier(A11y.listCheckout(section.title))
+                }
+            }
+            if section.basketCount > 0 {
+                ProgressCapsule(value: Double(section.basketCount) / Double(max(1, section.items.count)), tint: Brand.basket)
+                    .padding(.leading, 40)
+            }
+        }
+        .textCase(nil)
+        .padding(.bottom, 2)
+    }
+}
+
+/// The tick: hollow ring in the shop's colour, filled green with a bounce when in the basket,
+/// muted when bought.
+struct CheckMark: View {
+    let status: ItemStatus
+    let tint: Color
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .strokeBorder(status == .needed ? tint.opacity(0.55) : .clear, lineWidth: 2)
+                .frame(width: 26, height: 26)
+            if status != .needed {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 26))
+                    .foregroundStyle(.white, status == .inBasket ? Brand.basket : Color.secondary.opacity(0.6))
+                    .symbolEffect(.bounce, value: status)
+                    .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .frame(width: 26, height: 26)
+        .animation(.snappy, value: status)
+    }
+}
+
+/// Friendly empty state with a gradient symbol.
+struct EmptyState: View {
+    let symbol: String
+    let title: String
+    let text: String
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: symbol)
+                .font(.system(size: 44, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 96, height: 96)
+                .background(Brand.gradient, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .shadow(color: Brand.primary.opacity(0.35), radius: 16, y: 8)
+            Text(title).font(.title2.bold())
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 300)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 24)
     }
 }

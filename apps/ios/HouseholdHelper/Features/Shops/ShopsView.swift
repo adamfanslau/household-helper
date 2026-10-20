@@ -12,34 +12,41 @@ struct ShopsView: View {
         NavigationStack(path: $router.shopsPath) {
             Group {
                 if list.shops.isEmpty {
-                    ContentUnavailableView {
-                        Label("No shops yet", systemImage: "storefront")
-                    } description: {
-                        Text("Add the places you shop; items can then be grouped by shop.")
+                    ScrollView {
+                        EmptyState(symbol: "storefront.fill", title: "No shops yet", text: "Add the places you shop. Items you add for a shop are grouped under it, with a count of what is left to buy.")
+                            .padding(.top, 60)
                     }
                 } else {
                     List {
                         ForEach(list.shopsByActivity) { shop in
                             let open = list.openCount(for: shop.id)
+                            let basket = list.items.filter { $0.shopId == shop.id && $0.status == .inBasket }.count
                             NavigationLink(value: shop.id) {
-                                HStack {
-                                    Label {
-                                        Text(shop.name)
-                                    } icon: {
-                                        Image(systemName: "storefront")
+                                HStack(spacing: 14) {
+                                    ShopGlyph(name: shop.name, size: 44)
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        Text(shop.name).font(.headline)
+                                        if open > 0 {
+                                            Text(basket > 0 ? "\(basket) of \(open) in the basket" : "\(open) to buy")
+                                                .font(.caption).foregroundStyle(.secondary)
+                                            ProgressCapsule(value: Double(basket) / Double(max(1, open)), tint: Brand.shopColor(shop.name))
+                                        } else {
+                                            Text("Nothing to buy").font(.caption).foregroundStyle(.tertiary)
+                                        }
                                     }
                                     Spacer()
                                     if open > 0 {
                                         Text("\(open)")
-                                            .font(.subheadline.weight(.semibold))
+                                            .font(.subheadline.weight(.bold))
                                             .monospacedDigit()
-                                            .padding(.horizontal, 10)
-                                            .padding(.vertical, 3)
-                                            .background(Color.accentColor.opacity(0.15), in: Capsule())
-                                            .foregroundStyle(Color.accentColor)
+                                            .padding(.horizontal, 11)
+                                            .padding(.vertical, 4)
+                                            .background(Brand.shopColor(shop.name).opacity(0.16), in: Capsule())
+                                            .foregroundStyle(Brand.shopColor(shop.name))
                                             .accessibilityIdentifier(A11y.shopsCount(shop.name))
                                     }
                                 }
+                                .padding(.vertical, 4)
                             }
                             .accessibilityIdentifier(A11y.shopsRow(shop.name))
                             .accessibilityLabel("\(shop.name), \(open) to buy")
@@ -53,6 +60,9 @@ struct ShopsView: View {
                         }
                     }
                     .listStyle(.insetGrouped)
+                    .scrollContentBackground(.hidden)
+                    .background { Color(.systemGroupedBackground).ignoresSafeArea() }
+                    .background { HeroGlow() }
                     .animation(.snappy, value: list.shopsByActivity)
                     .refreshable { await list.refresh() }
                 }

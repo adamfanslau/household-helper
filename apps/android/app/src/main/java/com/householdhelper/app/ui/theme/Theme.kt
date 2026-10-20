@@ -1,32 +1,56 @@
 package com.householdhelper.app.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.expressiveLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 
-private val Seed = Color(0xFF2E7D32)
+// Branded palette instead of wallpaper-derived dynamic colour: the list is the product, and the
+// brand green plus per-shop colours (Brand.kt) carry the identity on both platforms.
+// Expressive surface kept small on purpose (theme + motion + a few components).
+private val Light = expressiveLightColorScheme().copy(
+    primary = Brand.Primary,
+    onPrimary = Color.White,
+    primaryContainer = Brand.Mint,
+    onPrimaryContainer = Color(0xFF003822),
+    secondary = Color(0xFF4A6354),
+    secondaryContainer = Color(0xFFD6EADB),
+    onSecondaryContainer = Color(0xFF0A2015),
+    tertiary = Color(0xFF2F6F8F),
+    tertiaryContainer = Color(0xFFCFE6F8),
+    onTertiaryContainer = Color(0xFF07293C),
+    surface = Color(0xFFF7FAF8),
+    surfaceContainerLow = Color(0xFFF0F5F2),
+    surfaceContainer = Color(0xFFEAF1EC),
+    surfaceContainerHigh = Color(0xFFE3ECE6),
+    background = Color(0xFFF7FAF8),
+)
 
-// Expressive surface kept small on purpose (theme + motion + a few components) so a move back
-// to material3 1.4 stable would be a few-file change.
+private val Dark = darkColorScheme(
+    primary = Color(0xFF6FD9A6),
+    onPrimary = Color(0xFF003822),
+    primaryContainer = Color(0xFF0E6B47),
+    onPrimaryContainer = Brand.Mint,
+    secondary = Color(0xFFB4CCBB),
+    secondaryContainer = Color(0xFF324A3B),
+    onSecondaryContainer = Color(0xFFD6EADB),
+    tertiary = Color(0xFF9DCDEB),
+    tertiaryContainer = Color(0xFF1E4D68),
+    onTertiaryContainer = Color(0xFFCFE6F8),
+    surface = Color(0xFF101513),
+    surfaceContainerLow = Color(0xFF171D1A),
+    surfaceContainer = Color(0xFF1C2320),
+    surfaceContainerHigh = Color(0xFF242C28),
+    background = Color(0xFF101513),
+)
+
 @Composable
 fun HouseholdHelperTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    val context = LocalContext.current
-    val colorScheme = when {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        darkTheme -> darkColorScheme(primary = Seed)
-        else -> lightColorScheme(primary = Seed)
-    }
     MaterialExpressiveTheme(
-        colorScheme = colorScheme,
+        colorScheme = if (darkTheme) Dark else Light,
         motionScheme = MotionScheme.expressive(),
         content = content,
     )

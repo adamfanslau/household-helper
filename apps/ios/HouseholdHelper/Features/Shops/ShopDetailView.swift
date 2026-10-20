@@ -19,16 +19,50 @@ struct ShopDetailView: View {
     }
     private var basketCount: Int { needed.filter { $0.status == .inBasket }.count }
 
+    /// Shop identity + progress ring, shown above the aisle list.
+    private var header: some View {
+        let color = Brand.shopColor(shop?.name ?? "")
+        return HStack(spacing: 16) {
+            ShopGlyph(name: shop?.name, size: 56)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(shop?.name ?? "Shop").font(.title2.bold())
+                Text(needed.isEmpty ? "All done here" : basketCount > 0 ? "\(basketCount) of \(needed.count) in the basket" : "\(needed.count) to buy")
+                    .font(.subheadline).foregroundStyle(.secondary)
+            }
+            Spacer()
+            ZStack {
+                Circle().stroke(color.opacity(0.18), lineWidth: 6)
+                Circle()
+                    .trim(from: 0, to: needed.isEmpty ? 1 : Double(basketCount) / Double(needed.count))
+                    .stroke(color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.snappy, value: basketCount)
+                Text(needed.isEmpty ? "✓" : "\(basketCount)/\(needed.count)").font(.caption.weight(.bold)).monospacedDigit()
+            }
+            .frame(width: 52, height: 52)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+    }
+
     var body: some View {
         Group {
             if needed.isEmpty {
-                ContentUnavailableView {
-                    Label("Nothing to buy here", systemImage: "basket")
-                } description: {
-                    Text("Items you add for \(shop?.name ?? "this shop") show up here.")
+                ScrollView {
+                    VStack(spacing: 24) {
+                        header
+                        EmptyState(symbol: Brand.shopSymbol(shop?.name ?? ""), title: "Nothing to buy here", text: "Items you add for \(shop?.name ?? "this shop") show up here, ready to tick off in the aisle.")
+                    }
+                    .padding(.top, 8)
                 }
             } else {
                 List {
+                    Section {
+                        header
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                    }
+                    Section {
                     ForEach(needed) { item in
                         // Default button style: the only kind of row synthetic taps reach (see ListView).
                         Button {
@@ -36,13 +70,11 @@ struct ShopDetailView: View {
                             Task { await list.toggle(item) }
                         } label: {
                             HStack(spacing: 12) {
-                                Image(systemName: item.status == .inBasket ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(item.status == .inBasket ? Color.green : Color.secondary)
-                                    .contentTransition(.symbolEffect(.replace))
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.name).foregroundStyle(.primary)
+                                CheckMark(status: item.status, tint: Brand.shopColor(shop?.name ?? ""))
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(item.name).foregroundStyle(item.status == .inBasket ? .secondary : .primary)
                                     if let qty = item.quantity, !qty.isEmpty {
-                                        Text(qty).font(.subheadline).foregroundStyle(.secondary)
+                                        Chip(text: qty, tint: Brand.shopColor(shop?.name ?? ""))
                                     }
                                 }
                                 Spacer()
@@ -52,8 +84,14 @@ struct ShopDetailView: View {
                         .accessibilityIdentifier(A11y.shopRow(item.name))
                         .accessibilityLabel("\(item.name)\(item.quantity.map { ", \($0)" } ?? ""), \(item.status == .inBasket ? "in basket" : "needed")")
                     }
+                    } header: {
+                        Text(basketCount > 0 ? "\(basketCount) of \(needed.count) in the basket" : "\(needed.count) to buy").textCase(nil)
+                    }
                 }
                 .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
+                .background { Color(.systemGroupedBackground).ignoresSafeArea() }
+                .background { HeroGlow(tint: Brand.shopColor(shop?.name ?? "")) }
                 .animation(.snappy, value: needed)
                 .refreshable { await list.refresh() }
             }
@@ -70,7 +108,7 @@ struct ShopDetailView: View {
                         .padding(.vertical, 6)
                 }
                 .buttonStyle(.glassProminent)
-                .tint(.green)
+                .tint(Brand.basket)
                 .padding(.horizontal)
                 .padding(.vertical, 8)
                 .accessibilityIdentifier(A11y.shopCheckout)

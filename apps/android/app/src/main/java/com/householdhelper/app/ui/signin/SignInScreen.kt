@@ -25,6 +25,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.ShoppingBasket
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import com.householdhelper.app.ui.theme.Brand
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -42,17 +51,29 @@ fun SignInScreen(auth: AuthRepository) {
     val context = LocalContext.current
     val googleAvailable = BuildConfig.GOOGLE_WEB_CLIENT_ID.isNotEmpty()
 
-    Column(
-        Modifier.fillMaxSize().systemBarsPadding().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Spacer(Modifier.weight(1f))
-        Icon(Icons.Outlined.ShoppingCart, contentDescription = null, Modifier.size(72.dp), tint = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.height(16.dp))
-        Text("Household Helper", style = MaterialTheme.typography.headlineLarge)
-        Spacer(Modifier.height(8.dp))
-        Text("One shopping list for the whole home.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.weight(1f))
+    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+        // Hero: brand gradient with a glass-like tile; buttons sit on the plain surface below.
+        Box(
+            Modifier.fillMaxWidth().weight(1f)
+                .background(
+                    Brush.linearGradient(listOf(Brand.PrimaryDeep, Brand.Primary, Brand.ShopPalette[3])),
+                    RoundedCornerShape(bottomStart = 36.dp, bottomEnd = 36.dp),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.statusBarsPadding().padding(24.dp)) {
+                Box(Modifier.size(112.dp).background(Color.White.copy(alpha = 0.85f), RoundedCornerShape(32.dp)), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Filled.ShoppingBasket, contentDescription = null, Modifier.size(52.dp), tint = Brand.PrimaryDeep)
+                }
+                Spacer(Modifier.height(18.dp))
+                Text("Household Helper", style = MaterialTheme.typography.headlineLarge, color = Color.White)
+                Spacer(Modifier.height(8.dp))
+                Text("One shopping list for the whole home.\nAdd it when it runs out. Tick it in the aisle.",
+                    style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha = 0.9f), textAlign = TextAlign.Center)
+            }
+        }
+        Spacer(Modifier.height(24.dp))
+        Column(Modifier.padding(horizontal = 24.dp).navigationBarsPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
 
         Button(
             onClick = {
@@ -98,5 +119,6 @@ fun SignInScreen(auth: AuthRepository) {
             Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
         Spacer(Modifier.height(16.dp))
+        }
     }
 }

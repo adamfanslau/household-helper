@@ -8,15 +8,37 @@ struct SignInView: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            Spacer()
-            Image(systemName: "cart.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(.tint)
-            Text("Household Helper")
-                .font(.largeTitle.bold())
-            Text("One shopping list for the whole home.")
-                .foregroundStyle(.secondary)
-            Spacer()
+            ZStack {
+                MeshGradient(width: 3, height: 3, points: [
+                    [0, 0], [0.5, 0], [1, 0],
+                    [0, 0.5], [0.55, 0.45], [1, 0.5],
+                    [0, 1], [0.5, 1], [1, 1],
+                ], colors: [
+                    Brand.primaryDeep, Brand.primary, Brand.shopPalette[3],
+                    Brand.primary, Brand.mint.opacity(0.9), Brand.primary,
+                    Brand.shopPalette[2], Brand.primary, Brand.primaryDeep,
+                ])
+                .ignoresSafeArea()
+                VStack(spacing: 18) {
+                    Image(systemName: "basket.fill")
+                        .font(.system(size: 52, weight: .semibold))
+                        .foregroundStyle(Brand.primaryDeep)
+                        .frame(width: 112, height: 112)
+                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 32, style: .continuous))
+                    Text("Household Helper")
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                    Text("One shopping list for the whole home.\nAdd it when it runs out. Tick it in the aisle.")
+                        .font(.body.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, 24)
+                .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
+            }
+            .frame(maxHeight: .infinity)
+            .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 36, bottomTrailingRadius: 36, style: .continuous))
+            .ignoresSafeArea(edges: .top)
             VStack(spacing: 12) {
                 // Apple first: App Store 4.8 requires it alongside any third-party login.
                 SignInWithAppleButton(.signIn) { request in

@@ -76,6 +76,14 @@ import androidx.compose.material.icons.outlined.ShoppingCartCheckout
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.graphics.Color
+import com.householdhelper.app.ui.CheckMark
+import com.householdhelper.app.ui.Chip
+import com.householdhelper.app.ui.EmptyState
+import com.householdhelper.app.ui.ProgressCapsule
+import com.householdhelper.app.ui.ShopGlyph
+import com.householdhelper.app.ui.theme.Brand
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.foundation.layout.height
 import androidx.compose.ui.Modifier
 import com.householdhelper.app.ui.exposeTestTags
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -151,9 +159,14 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
         snackbarHost = { SnackbarHost(snackbar, Modifier.testTag("snackbar")) },
         floatingActionButton = {
             // The one call to action: a floating + that opens the add sheet.
-            FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.testTag("list.add")) {
-                Icon(Icons.Outlined.Add, contentDescription = "Add to the list")
-            }
+            ExtendedFloatingActionButton(
+                onClick = { showAdd = true },
+                icon = { Icon(Icons.Outlined.Add, contentDescription = null) },
+                text = { Text("Add") },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.testTag("list.add"),
+            )
         },
     ) { padding ->
         PullToRefreshBox(
@@ -167,31 +180,41 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
                 loading && items.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
                 sections.isEmpty -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Outlined.ShoppingCart, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("Nothing to buy", style = MaterialTheme.typography.titleMedium, modifier = Modifier.testTag("list.empty"))
-                        Text("Add items as they run out at home.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        EmptyState(Icons.Outlined.ShoppingCart, "Nothing to buy", "Tap Add when something runs out at home. Everyone in the household sees it instantly.")
+                        Spacer(Modifier.height(1.dp).testTag("list.empty"))
                     }
                 }
                 else -> LazyColumn(Modifier.fillMaxSize().testTag("list"), contentPadding = PaddingValues(bottom = 24.dp)) {
                     sections.needed.forEach { section ->
                         stickyHeader(key = "h-${section.id}") {
+                            val tint = if (section.shopId == null) MaterialTheme.colorScheme.outline else Brand.shopColor(section.title)
                             Surface(color = MaterialTheme.colorScheme.surface) {
-                                Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 8.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        "${section.title} · ${section.items.size}",
-                                        style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.weight(1f).testTag("list.section.${section.title}"),
-                                    )
-                                    if (section.basketCount > 0) {
-                                        Button(
-                                            onClick = { haptics.performHapticFeedback(HapticFeedbackType.Confirm); scope.launch { container.list.checkout(section.shopId, unsorted = section.shopId == null) } },
-                                            shapes = ButtonDefaults.shapes(),
-                                            modifier = Modifier.testTag("list.checkout.${section.title}"),
-                                        ) {
-                                            Icon(Icons.Outlined.ShoppingCartCheckout, contentDescription = null)
-                                            Spacer(Modifier.width(6.dp))
-                                            Text("Checkout ${section.basketCount}")
+                                Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 6.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        ShopGlyph(name = section.shopId?.let { section.title }, size = 30.dp)
+                                        Spacer(Modifier.width(10.dp))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(section.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.testTag("list.section.${section.title}"))
+                                            Text(
+                                                if (section.basketCount > 0) "${section.basketCount} of ${section.items.size} in the basket" else "${section.items.size} to buy",
+                                                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
                                         }
+                                        if (section.basketCount > 0) {
+                                            Button(
+                                                onClick = { haptics.performHapticFeedback(HapticFeedbackType.Confirm); scope.launch { container.list.checkout(section.shopId, unsorted = section.shopId == null) } },
+                                                shapes = ButtonDefaults.shapes(),
+                                                colors = ButtonDefaults.buttonColors(containerColor = Brand.Basket, contentColor = Color.White),
+                                                modifier = Modifier.testTag("list.checkout.${section.title}"),
+                                            ) {
+                                                Icon(Icons.Outlined.ShoppingCartCheckout, contentDescription = null)
+                                                Spacer(Modifier.width(6.dp))
+                                                Text("Checkout ${section.basketCount}")
+                                            }
+                                        }
+                                    }
+                                    if (section.basketCount > 0) {
+                                        ProgressCapsule(section.basketCount.toFloat() / section.items.size, Brand.Basket, Modifier.padding(start = 40.dp, top = 8.dp, end = 4.dp))
                                     }
                                 }
                             }
@@ -341,24 +364,20 @@ fun ItemRow(item: ShoppingListItem, shopName: String?, onClick: () -> Unit, onLo
             .testTag("list.item.${item.name}"),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            if (item.isBought || item.isInBasket) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
-            contentDescription = null,
-            tint = when { item.isInBasket -> BasketGreen; item.isBought -> MaterialTheme.colorScheme.primary; else -> MaterialTheme.colorScheme.onSurfaceVariant },
-        )
-        Spacer(Modifier.width(16.dp))
+        val tint = shopName?.let { Brand.shopColor(it) } ?: MaterialTheme.colorScheme.outline
+        CheckMark(item.status, tint)
+        Spacer(Modifier.width(14.dp))
         Column {
             Text(
                 item.name,
                 style = MaterialTheme.typography.bodyLarge,
                 textDecoration = if (item.isBought) TextDecoration.LineThrough else null,
-                color = if (item.isBought) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                color = if (item.isBought || item.isInBasket) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
             )
-            val sub = listOfNotNull(item.quantity?.takeIf { it.isNotBlank() }, addedBy?.let { "added by $it" }).joinToString(" · ")
-            if (sub.isNotEmpty()) Text(sub, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                item.quantity?.takeIf { it.isNotBlank() }?.let { Chip(it, tint, Modifier.padding(top = 3.dp, end = 8.dp)) }
+                addedBy?.let { Text("added by $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            }
         }
     }
 }
-
-/** The one non-semantic colour: a basket tick reads as "done for now" in both themes. */
-private val BasketGreen = Color(0xFF2E7D32)

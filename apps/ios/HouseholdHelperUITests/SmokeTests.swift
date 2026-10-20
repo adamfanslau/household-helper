@@ -56,6 +56,12 @@ final class SmokeTests: XCTestCase {
         shot("03-bought")
 
         // Swipe trailing → delete (full swipe or the revealed button) → undo toast → gone.
+        // The row sits at the bottom edge after expanding Recently bought: bring it above the
+        // floating tab bar and the + button first, or the revealed Delete lands under them.
+        if item("Oat milk").frame.maxY > app.frame.maxY - 140 {
+            app.swipeUp()
+            _ = item("Oat milk").waitForExistence(timeout: 2)
+        }
         item("Oat milk").swipeLeft()
         let deleteButton = app.buttons["list.item.Oat milk.delete"]
         if deleteButton.waitForExistence(timeout: 2) { deleteButton.tap() }

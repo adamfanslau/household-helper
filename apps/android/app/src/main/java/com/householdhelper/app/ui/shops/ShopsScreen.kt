@@ -64,6 +64,13 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.height
+import com.householdhelper.app.ui.CheckMark
+import com.householdhelper.app.ui.Chip
+import com.householdhelper.app.ui.EmptyState
+import com.householdhelper.app.ui.ProgressCapsule
+import com.householdhelper.app.ui.ShopGlyph
+import com.householdhelper.app.ui.theme.Brand
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import com.householdhelper.app.ui.exposeTestTags
 import androidx.compose.ui.platform.testTag
@@ -138,11 +145,7 @@ private fun ShopsListScreen(container: AppContainer, onOpen: (Shop) -> Unit) {
     ) { padding ->
         if (shops.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Outlined.Storefront, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("No shops yet", style = MaterialTheme.typography.titleMedium)
-                    Text("Add the places you shop; items can then be grouped by shop.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+                EmptyState(Icons.Outlined.Storefront, "No shops yet", "Add the places you shop. Items you add for a shop are grouped under it, with a count of what is left to buy.")
             }
         } else LazyColumn(Modifier.fillMaxSize().padding(padding)) {
             items(shops, key = { it.id }) { shop ->
@@ -155,18 +158,29 @@ private fun ShopsListScreen(container: AppContainer, onOpen: (Shop) -> Unit) {
                         }
                     },
                 ) {
+                    val open = com.householdhelper.app.data.ListRepository.Counts.openCount(items, shop.id)
+                    val basket = items.count { it.shopId == shop.id && it.isInBasket }
+                    val tint = Brand.shopColor(shop.name)
                     ListItem(
-                        headlineContent = { Text(shop.name) },
-                        leadingContent = { Icon(Icons.Outlined.Storefront, null) },
+                        headlineContent = { Text(shop.name, style = MaterialTheme.typography.titleMedium) },
+                        supportingContent = {
+                            Column {
+                                Text(
+                                    when { open == 0 -> "Nothing to buy"; basket > 0 -> "$basket of $open in the basket"; else -> "$open to buy" },
+                                    style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                if (open > 0) ProgressCapsule(basket.toFloat() / open, tint, Modifier.padding(top = 6.dp, end = 8.dp))
+                            }
+                        },
+                        leadingContent = { ShopGlyph(shop.name, size = 44.dp) },
                         trailingContent = {
-                            val open = com.householdhelper.app.data.ListRepository.Counts.openCount(items, shop.id)
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (open > 0) Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.primaryContainer) {
-                                    Text("$open", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp).testTag("shops.count.${shop.name}"))
+                                if (open > 0) Surface(shape = MaterialTheme.shapes.extraLarge, color = tint.copy(alpha = 0.16f)) {
+                                    Text("$open", style = MaterialTheme.typography.labelLarge, color = tint,
+                                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 4.dp).testTag("shops.count.${shop.name}"))
                                 }
                                 Spacer(Modifier.width(8.dp))
-                                Icon(Icons.Outlined.ChevronRight, null)
+                                Icon(Icons.Outlined.ChevronRight, null, tint = MaterialTheme.colorScheme.outline)
                             }
                         },
                         modifier = Modifier.clickable { onOpen(shop) }
@@ -223,6 +237,7 @@ fun ShopDetailScreen(container: AppContainer, shopId: String, onBack: () -> Unit
                 Button(
                     onClick = { haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.Confirm); scope.launch { container.list.checkout(shopId) } },
                     shapes = ButtonDefaults.shapes(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Brand.Basket, contentColor = Color.White),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).height(52.dp).testTag("shop.checkout"),
                 ) {
                     Icon(Icons.Outlined.ShoppingCartCheckout, contentDescription = null)
@@ -232,20 +247,41 @@ fun ShopDetailScreen(container: AppContainer, shopId: String, onBack: () -> Unit
             }
         },
     ) { padding ->
-        if (needed.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Outlined.Inventory2, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Nothing to buy here", style = MaterialTheme.typography.titleMedium)
-                    Text("Items you add for ${shop?.name ?: "this shop"} show up here.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        val tint = Brand.shopColor(shop?.name ?: "")
+        val header: @Composable () -> Unit = {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                ShopGlyph(shop?.name, size = 56.dp)
+                Spacer(Modifier.width(16.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(shop?.name ?: "Shop", style = MaterialTheme.typography.headlineSmall)
+                    Text(
+                        when { needed.isEmpty() -> "All done here"; basket > 0 -> "$basket of ${needed.size} in the basket"; else -> "${needed.size} to buy" },
+                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Box(contentAlignment = Alignment.Center) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        progress = { if (needed.isEmpty()) 1f else basket.toFloat() / needed.size },
+                        color = tint, trackColor = tint.copy(alpha = 0.18f), strokeWidth = 6.dp, gapSize = 0.dp,
+                        modifier = Modifier.size(52.dp),
+                    )
+                    Text(if (needed.isEmpty()) "✓" else "$basket/${needed.size}", style = MaterialTheme.typography.labelSmall)
                 }
             }
+        }
+        if (needed.isEmpty()) {
+            Column(Modifier.fillMaxSize().padding(padding)) {
+                header()
+                Spacer(Modifier.height(24.dp))
+                EmptyState(Brand.shopIcon(shop?.name ?: ""), "Nothing to buy here", "Items you add for ${shop?.name ?: "this shop"} show up here, ready to tick off in the aisle.")
+            }
         } else LazyColumn(Modifier.fillMaxSize().padding(padding)) {
+            item(key = "header") { header() }
             items(needed, key = { it.id }) { item ->
                 ListItem(
-                    headlineContent = { Text(item.name) },
-                    supportingContent = item.quantity?.takeIf { it.isNotBlank() }?.let { { Text(it) } },
-                    leadingContent = { Icon(if (item.isInBasket) Icons.Filled.CheckCircle else Icons.Outlined.RadioButtonUnchecked, contentDescription = null, tint = if (item.isInBasket) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurfaceVariant) },
+                    headlineContent = { Text(item.name, color = if (item.isInBasket) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface) },
+                    supportingContent = item.quantity?.takeIf { it.isNotBlank() }?.let { { Chip(it, tint, Modifier.padding(top = 3.dp)) } },
+                    leadingContent = { CheckMark(item.status, tint) },
                     modifier = Modifier.animateItem().clickable { haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.ToggleOn); scope.launch { container.list.toggle(item) } }
                         .semantics(mergeDescendants = true) { contentDescription = "${item.name}${item.quantity?.let { ", $it" } ?: ""}, ${if (item.isInBasket) "in basket" else "needed"}" }
                         .testTag("shop.row.${item.name}"),
