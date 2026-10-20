@@ -250,7 +250,7 @@ struct ListView: View {
                 .font(.system(size: 26, weight: .semibold))
                 .frame(width: 60, height: 60)
         }
-        .buttonStyle(ConvexButtonStyle())
+        .buttonStyle(GradientButtonStyle())
         .padding(.trailing, 20)
         .padding(.bottom, 16)
         .accessibilityLabel("Add to the list")

@@ -77,28 +77,17 @@ struct HeroGlow: View {
     }
 }
 
-/// The floating call to action: Leaf gradient, a light catch on the top edge so it reads convex,
-/// a deep-green soft shadow, and a press squash (design canvas: 135° #1FB57A→#0E6B47,
-/// shadow 0 10 24 at 38 %, inset top highlight at 35 %).
-struct ConvexButtonStyle: ButtonStyle {
+/// The floating call to action: a flat circle with a subtle Leaf gradient (lighter top-leading,
+/// deeper bottom-trailing), a soft shadow and a press squash. No highlights or rims.
+struct GradientButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .foregroundStyle(.white)
             .background {
-                Circle().fill(LinearGradient(colors: [Brand.leaf, Brand.primaryDeep], startPoint: .topLeading, endPoint: .bottomTrailing))
+                Circle().fill(LinearGradient(colors: [Brand.primary, Brand.primaryDeep], startPoint: .topLeading, endPoint: .bottomTrailing))
             }
-            .overlay(alignment: .top) {
-                Ellipse()
-                    .fill(RadialGradient(colors: [.white.opacity(0.30), .clear], center: .center, startRadius: 0, endRadius: 26))
-                    .frame(width: 46, height: 26)
-                    .offset(y: 3)
-            }
-            .overlay {
-                Circle().strokeBorder(LinearGradient(colors: [.white.opacity(0.45), .white.opacity(0)], startPoint: .top, endPoint: .bottom), lineWidth: 1.5)
-            }
-            .clipShape(Circle())
-            .shadow(color: Brand.primaryDeep.opacity(0.38), radius: 12, y: 10)
-            .scaleEffect(configuration.isPressed ? 0.93 : 1)
+            .shadow(color: Brand.primaryDeep.opacity(0.28), radius: 10, y: 6)
+            .scaleEffect(configuration.isPressed ? 0.94 : 1)
             .animation(.snappy(duration: 0.2), value: configuration.isPressed)
     }
 }
