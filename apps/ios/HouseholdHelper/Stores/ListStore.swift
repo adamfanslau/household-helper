@@ -143,13 +143,51 @@ final class ListStore {
         }
     }
 
+    /// Tap: needed ⇄ in the basket; a bought item goes back to needed (un-buy).
     func toggle(_ item: ShoppingListItem) async {
-        Log.ui.info("toggle \(item.name, privacy: .public) hid=\(self.hid ?? "nil", privacy: .public)")
         var next = item
-        next.status = item.status == .needed ? .bought : .needed
-        next.boughtAt = next.status == .bought ? Date() : nil
-        bumpNeeded(shopID: item.shopId, by: next.status == .bought ? -1 : 1)
+        next.status = item.status == .needed ? .inBasket : .needed
+        next.boughtAt = nil
+        if item.status == .bought { bumpNeeded(shopID: item.shopId, by: 1) }
         await patch(item, PatchBody(status: next.status), optimistic: next)
+    }
+
+    /// Swipe / menu: straight to bought (skipping the basket).
+    func markBought(_ item: ShoppingListItem) async {
+        guard item.status != .bought else { return }
+        var next = item
+        next.status = .bought
+        next.boughtAt = Date()
+        bumpNeeded(shopID: item.shopId, by: -1)
+        await patch(item, PatchBody(status: .bought), optimistic: next)
+    }
+
+    /// Checkout: everything in the basket for one shop (`.some(nil)` = Unsorted, `nil` = all) becomes bought.
+    func checkout(shopID: String??) async {
+        guard let hid else { return }
+        let scope: (ShoppingListItem) -> Bool = { item in
+            guard item.status == .inBasket else { return false }
+            switch shopID {
+            case .none: return true
+            case .some(let id): return item.shopId == id
+            }
+        }
+        let before = items
+        let now = Date()
+        for i in items.indices where scope(items[i]) {
+            items[i].status = .bought
+            items[i].boughtAt = now
+            bumpNeeded(shopID: items[i].shopId, by: -1)
+        }
+        struct Body: Encodable { var shopId: String?? ; enum CodingKeys: String, CodingKey { case shopId }
+            func encode(to e: Encoder) throws { var c = e.container(keyedBy: CodingKeys.self); if let v = shopId { try c.encode(v, forKey: .shopId) } } }
+        do {
+            let saved: [ShoppingListItem] = try await api.post("/v1/households/\(hid)/items/checkout", Body(shopId: shopID))
+            for s in saved { replace(s) }
+        } catch {
+            items = before
+            self.error = error.localizedDescription
+        }
     }
 
     func move(_ item: ShoppingListItem, toShop shopID: String?) async {

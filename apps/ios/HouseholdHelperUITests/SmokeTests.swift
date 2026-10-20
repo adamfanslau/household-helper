@@ -40,11 +40,15 @@ final class SmokeTests: XCTestCase {
         wait(item("Oat milk"))
         shot("02-added")
 
-        // Tap → bought → under Recently bought (expand it).
+        // Tap → in the basket (stays in Unsorted, ticked) → Checkout Unsorted → bought under Recently bought.
         item("Oat milk").tap()
+        wait(app.buttons["list.checkout.Unsorted"])
+        XCTAssertTrue(item("Oat milk").label.contains("in basket"), "label: \(item("Oat milk").label)")
+        shot("03-basket")
+        // Section-header buttons fail XCUITest's hittable check; a coordinate tap works.
+        app.buttons["list.checkout.Unsorted"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         wait(app.buttons["list.bought.toggle"])
         if !item("Oat milk").exists || !item("Oat milk").isHittable {
-            // Section-header buttons fail XCUITest's hittable check; a coordinate tap works.
             app.buttons["list.bought.toggle"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         }
         wait(item("Oat milk"))

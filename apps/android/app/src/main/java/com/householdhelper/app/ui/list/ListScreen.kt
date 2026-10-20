@@ -70,6 +70,12 @@ import androidx.compose.material3.SwipeToDismissBoxDefaults
 import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.ShoppingBasket
+import androidx.compose.material.icons.outlined.ShoppingCartCheckout
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import com.householdhelper.app.ui.exposeTestTags
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -170,17 +176,30 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
                     sections.needed.forEach { section ->
                         stickyHeader(key = "h-${section.id}") {
                             Surface(color = MaterialTheme.colorScheme.surface) {
-                                Text(
-                                    "${section.title} · ${section.items.size}",
-                                    style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 16.dp, bottom = 4.dp).testTag("list.section.${section.title}"),
-                                )
+                                Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 8.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        "${section.title} · ${section.items.size}",
+                                        style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.weight(1f).testTag("list.section.${section.title}"),
+                                    )
+                                    if (section.basketCount > 0) {
+                                        Button(
+                                            onClick = { haptics.performHapticFeedback(HapticFeedbackType.Confirm); scope.launch { container.list.checkout(section.shopId, unsorted = section.shopId == null) } },
+                                            shapes = ButtonDefaults.shapes(),
+                                            modifier = Modifier.testTag("list.checkout.${section.title}"),
+                                        ) {
+                                            Icon(Icons.Outlined.ShoppingCartCheckout, contentDescription = null)
+                                            Spacer(Modifier.width(6.dp))
+                                            Text("Checkout ${section.basketCount}")
+                                        }
+                                    }
+                                }
                             }
                         }
                         items(section.items, key = { it.id }) { item ->
                             SwipeRow(
                                 item = item,
-                                onBought = { haptics.performHapticFeedback(HapticFeedbackType.ToggleOn); scope.launch { container.list.toggle(item) } },
+                                onBought = { haptics.performHapticFeedback(HapticFeedbackType.ToggleOn); scope.launch { container.list.markBought(item) } },
                                 onDelete = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); container.list.delete(item) },
                                 modifier = Modifier.animateItem(),
                             ) {
@@ -236,7 +255,9 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
             ListItem(headlineContent = { Text("Unsorted") }, modifier = Modifier.combinedClickable(enabled = item.shopId != null) { sheetItem = null; scope.launch { container.list.move(item, null) } }.testTag("item.move.Unsorted"))
             ListItem(headlineContent = { Text("Edit") }, leadingContent = { Icon(Icons.Outlined.Edit, null) }, modifier = Modifier.combinedClickable { sheetItem = null; editing = item }.testTag("item.edit"))
             ListItem(headlineContent = { Text(if (item.isBought) "Mark needed" else "Mark bought") }, leadingContent = { Icon(Icons.Outlined.CheckCircle, null) },
-                modifier = Modifier.combinedClickable { sheetItem = null; scope.launch { container.list.toggle(item) } }.testTag("item.toggle"))
+                modifier = Modifier.combinedClickable { sheetItem = null; scope.launch { if (item.isBought) container.list.toggle(item) else container.list.markBought(item) } }.testTag("item.toggle"))
+            if (!item.isBought) ListItem(headlineContent = { Text(if (item.isInBasket) "Take out of basket" else "In the basket") }, leadingContent = { Icon(Icons.Outlined.ShoppingBasket, null) },
+                modifier = Modifier.combinedClickable { sheetItem = null; scope.launch { container.list.toggle(item) } }.testTag("item.basket"))
             ListItem(headlineContent = { Text("Delete", color = MaterialTheme.colorScheme.error) }, leadingContent = { Icon(Icons.Outlined.Delete, null, tint = MaterialTheme.colorScheme.error) },
                 modifier = Modifier.combinedClickable { sheetItem = null; container.list.delete(item) }.testTag("item.delete"))
             Spacer(Modifier.padding(16.dp))
@@ -307,7 +328,7 @@ fun ItemRow(item: ShoppingListItem, shopName: String?, onClick: () -> Unit, onLo
     val desc = buildList {
         add(item.name)
         item.quantity?.takeIf { it.isNotBlank() }?.let { add(it) }
-        add(if (item.isBought) "bought" else "needed")
+        add(if (item.isBought) "bought" else if (item.isInBasket) "in basket" else "needed")
         shopName?.let { add(it) }
     }.joinToString(", ")
     // "added by" only for other members; display names arrive with step 10, dev uids are readable as-is.
@@ -321,9 +342,9 @@ fun ItemRow(item: ShoppingListItem, shopName: String?, onClick: () -> Unit, onLo
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            if (item.isBought) Icons.Outlined.CheckCircle else Icons.Outlined.Circle,
+            if (item.isBought || item.isInBasket) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
             contentDescription = null,
-            tint = if (item.isBought) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = when { item.isInBasket -> BasketGreen; item.isBought -> MaterialTheme.colorScheme.primary; else -> MaterialTheme.colorScheme.onSurfaceVariant },
         )
         Spacer(Modifier.width(16.dp))
         Column {
@@ -338,3 +359,6 @@ fun ItemRow(item: ShoppingListItem, shopName: String?, onClick: () -> Unit, onLo
         }
     }
 }
+
+/** The one non-semantic colour: a basket tick reads as "done for now" in both themes. */
+private val BasketGreen = Color(0xFF2E7D32)

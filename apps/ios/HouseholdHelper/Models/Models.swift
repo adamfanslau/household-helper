@@ -2,8 +2,9 @@
 // apps/api/internal/httpapi/testdata/golden, decoded by ModelsDecodingTests. Keep in sync.
 import Foundation
 
+/// needed → (tap in the shop) in_basket → (checkout) bought.
 nonisolated enum ItemStatus: String, Codable, Sendable {
-    case needed, bought
+    case needed, inBasket = "in_basket", bought
 }
 
 nonisolated struct Me: Codable, Hashable, Sendable {

@@ -58,6 +58,12 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.ShoppingCartCheckout
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.height
 import androidx.compose.ui.Modifier
 import com.householdhelper.app.ui.exposeTestTags
 import androidx.compose.ui.platform.testTag
@@ -184,7 +190,9 @@ fun ShopDetailScreen(container: AppContainer, shopId: String, onBack: () -> Unit
     val shops by container.list.shops.collectAsStateWithLifecycle()
     val items by container.list.items.collectAsStateWithLifecycle()
     val shop = shops.firstOrNull { it.id == shopId }
-    val needed = remember(items) { items.filter { it.shopId == shopId && !it.isBought } }
+    val needed = remember(items) { items.filter { it.shopId == shopId && !it.isBought }.let { l -> l.filter { !it.isInBasket } + l.filter { it.isInBasket } } }
+    val basket = needed.count { it.isInBasket }
+    val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
     var menu by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
@@ -204,6 +212,19 @@ fun ShopDetailScreen(container: AppContainer, shopId: String, onBack: () -> Unit
                 },
             )
         },
+        bottomBar = {
+            if (basket > 0) Surface(tonalElevation = 3.dp) {
+                Button(
+                    onClick = { haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.Confirm); scope.launch { container.list.checkout(shopId) } },
+                    shapes = ButtonDefaults.shapes(),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).height(52.dp).testTag("shop.checkout"),
+                ) {
+                    Icon(Icons.Outlined.ShoppingCartCheckout, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Checkout · $basket in the basket")
+                }
+            }
+        },
     ) { padding ->
         if (needed.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
@@ -218,9 +239,9 @@ fun ShopDetailScreen(container: AppContainer, shopId: String, onBack: () -> Unit
                 ListItem(
                     headlineContent = { Text(item.name) },
                     supportingContent = item.quantity?.takeIf { it.isNotBlank() }?.let { { Text(it) } },
-                    leadingContent = { Icon(Icons.Outlined.RadioButtonUnchecked, contentDescription = null) },
-                    modifier = Modifier.animateItem().clickable { scope.launch { container.list.toggle(item) } }
-                        .semantics(mergeDescendants = true) { contentDescription = "${item.name}${item.quantity?.let { ", $it" } ?: ""}, needed" }
+                    leadingContent = { Icon(if (item.isInBasket) Icons.Filled.CheckCircle else Icons.Outlined.RadioButtonUnchecked, contentDescription = null, tint = if (item.isInBasket) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurfaceVariant) },
+                    modifier = Modifier.animateItem().clickable { haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.ToggleOn); scope.launch { container.list.toggle(item) } }
+                        .semantics(mergeDescendants = true) { contentDescription = "${item.name}${item.quantity?.let { ", $it" } ?: ""}, ${if (item.isInBasket) "in basket" else "needed"}" }
                         .testTag("shop.row.${item.name}"),
                 )
             }

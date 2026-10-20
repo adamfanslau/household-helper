@@ -122,8 +122,8 @@ func (s *Server) patchItem(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if in.Status != nil {
-		if *in.Status != "needed" && *in.Status != "bought" {
-			fields["status"] = "needed or bought"
+		if *in.Status != "needed" && *in.Status != "in_basket" && *in.Status != "bought" {
+			fields["status"] = "needed, in_basket or bought"
 		} else {
 			p.Status = in.Status
 		}
@@ -169,4 +169,25 @@ func (s *Server) clearBought(w http.ResponseWriter, r *http.Request) {
 		s.publish(r, "shopping_list_items", "delete", idRow{ID: id})
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// checkout marks in-basket items bought: body {} = all, {"shop_id":"<id>"} = that shop,
+// {"shop_id":null} = Unsorted. Returns the updated items and publishes one update each.
+func (s *Server) checkout(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		ShopID optString `json:"shop_id"`
+	}
+	if !decode(w, r, &in) {
+		return
+	}
+	scope := store.Opt{Set: in.ShopID.Set, Value: in.ShopID.Value}
+	items, err := s.db.Checkout(r.Context(), r.PathValue("hid"), scope)
+	if err != nil {
+		s.fail(w, err, "")
+		return
+	}
+	for _, it := range items {
+		s.publish(r, "shopping_list_items", "update", it)
+	}
+	writeJSON(w, http.StatusOK, items)
 }

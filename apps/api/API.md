@@ -48,11 +48,11 @@ Every response carries `X-Request-Id` (a client-supplied one ≤ 64 chars is ech
 
 **Invite**: `id`, `household_id`, `code` (8 chars, A–Z/0–9), `created_by`, `created_at`, `expires_at` (nullable), `revoked_at` (nullable).
 
-**Shop**: `id`, `household_id`, `name`, `sort_order` (int, server-assigned on create), `created_at`, `updated_at`, `needed_count` (int, computed: list items with `status=needed` in this shop).
+**Shop**: `id`, `household_id`, `name`, `sort_order` (int, server-assigned on create), `created_at`, `updated_at`, `needed_count` (int, computed: list items in this shop not yet bought, i.e. `needed` + `in_basket`).
 
 **CatalogItem** (a household's *product*, not tied to a shop): `id`, `household_id`, `name` (unique per household, case-insensitive), `shop_id` (nullable: the shop it was last added for), `default_unit` (nullable: the quantity last used), `created_at`, `updated_at`. Adding a list item by name creates or updates the product of that name, so the catalog is the source of typing hints.
 
-**ShoppingListItem**: `id`, `household_id`, `name`, `shop_id` (nullable → "Unsorted"), `catalog_item_id` (nullable), `quantity` (nullable), `status` (`needed`|`bought`), `added_by` (nullable), `created_at`, `updated_at`, `bought_at` (nullable; set by the server exactly when `status` is `bought`).
+**ShoppingListItem**: `id`, `household_id`, `name`, `shop_id` (nullable → "Unsorted"), `catalog_item_id` (nullable), `quantity` (nullable), `status` (`needed` | `in_basket` | `bought`), `added_by` (nullable), `created_at`, `updated_at`, `bought_at` (nullable; set by the server exactly when `status` is `bought`). Shopping is two steps: tapping an item in the shop makes it `in_basket` (still on the list, ticked, shown last in its shop); checkout turns the basket into `bought`.
 
 ## Routes
 
@@ -83,6 +83,7 @@ Household-scoped routes (`…/households/{hid}/…`) require membership; otherwi
 | `PATCH /v1/households/{hid}/items/{itemId}` | `{"name"?, "quantity"?(nullable), "shop_id"?(nullable; "move to shop"), "status"?}` | ShoppingListItem; `status` flips set/clear `bought_at` server-side |
 | `DELETE /v1/households/{hid}/items/{itemId}` | | 204 |
 | `DELETE /v1/households/{hid}/items?status=bought` | | 204 ("Clear recently bought"); without the query → 400 |
+| `POST /v1/households/{hid}/items/checkout` | `{}` (everything in the basket) · `{"shop_id":"<id>"}` (one shop) · `{"shop_id":null}` (Unsorted) | `[ShoppingListItem]` now `bought` (SSE: one update each) |
 | `GET /v1/households/{hid}/events` | | SSE stream, see below |
 | `PUT /v1/me/push-tokens` | `{"token"(1–4096), "platform"("ios"\|"android")}` | 204 (upsert; a token re-registered by another user moves to the caller) |
 | `DELETE /v1/me/push-tokens/{token}` | | 204, idempotent; only the caller's own registration is removed (call before signing out) |

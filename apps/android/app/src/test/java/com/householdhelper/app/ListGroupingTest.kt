@@ -27,4 +27,13 @@ class ListGroupingTest {
     @Test fun empty() {
         assertTrue(ListGrouping.sections(emptyList(), emptyList()).isEmpty)
     }
+
+    @Test fun basketItemsSinkToTheBottomOfTheirShop() {
+        val shops = listOf(shop("tj", "Trader Joe's", 0))
+        val items = listOf(item("Milk", "tj", "in_basket"), item("Bananas", "tj"), item("Eggs", "tj", "in_basket"), item("Jam", "tj"))
+        val s = ListGrouping.sections(items, shops)
+        assertEquals(listOf("Bananas", "Jam", "Milk", "Eggs"), s.needed[0].items.map { it.name })
+        assertEquals(2, s.needed[0].basketCount)
+        assertTrue(s.bought.isEmpty())
+    }
 }

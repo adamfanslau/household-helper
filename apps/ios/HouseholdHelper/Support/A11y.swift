@@ -26,6 +26,8 @@ nonisolated enum A11y {
     static func listItem(_ name: String) -> String { "list.item.\(name)" }
     static func listItemBought(_ name: String) -> String { "list.item.\(name).bought" }
     static func listItemDelete(_ name: String) -> String { "list.item.\(name).delete" }
+    static func listCheckout(_ section: String) -> String { "list.checkout.\(section)" }
+    static let shopCheckout = "shop.checkout"
     static let listBoughtToggle = "list.bought.toggle"
     static let listBoughtMenu = "list.bought.menu"
     static let listUndo = "list.undo"

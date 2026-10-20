@@ -9,7 +9,8 @@ nonisolated enum ListGrouping {
         let id: String
         let title: String
         let shopID: String?
-        let items: [ShoppingListItem]
+        let items: [ShoppingListItem]   // needed first, in-basket last (in arrival order within each)
+        var basketCount: Int { items.filter { $0.status == .inBasket }.count }
     }
 
     struct Sections: Hashable, Sendable {
@@ -27,6 +28,10 @@ nonisolated enum ListGrouping {
             } else {
                 byShop[item.shopId ?? unsortedID, default: []].append(item)
             }
+        }
+        for key in byShop.keys {
+            // Ticked items sink to the bottom of their shop so what is still to find stays on top.
+            byShop[key] = byShop[key]!.filter { $0.status != .inBasket } + byShop[key]!.filter { $0.status == .inBasket }
         }
         var needed: [Section] = []
         for shop in shops.sorted(by: { ($0.sortOrder, $0.createdAt) < ($1.sortOrder, $1.createdAt) }) {

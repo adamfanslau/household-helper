@@ -75,6 +75,8 @@ data class ShoppingListItem(
     val boughtAt: String? = null,
 ) {
     val isBought: Boolean get() = status == "bought"
+    /** Ticked in the shop, not yet checked out. */
+    val isInBasket: Boolean get() = status == "in_basket"
 }
 
 /** One `event: change` frame; `row` is decoded per table. */

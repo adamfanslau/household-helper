@@ -33,4 +33,13 @@ struct ListGroupingTests {
         let s = ListGrouping.sections(items: [item("Ghost", shop: "gone")], shops: [])
         #expect(s.needed.isEmpty && s.bought.isEmpty)
     }
+
+    @Test func basketItemsSinkToTheBottomOfTheirShop() {
+        let shops = [shop("tj", "Trader Joe's", 0)]
+        let items = [item("Milk", shop: "tj", status: .inBasket), item("Bananas", shop: "tj"), item("Eggs", shop: "tj", status: .inBasket), item("Jam", shop: "tj")]
+        let s = ListGrouping.sections(items: items, shops: shops)
+        #expect(s.needed[0].items.map(\.name) == ["Bananas", "Jam", "Milk", "Eggs"])
+        #expect(s.needed[0].basketCount == 2)
+        #expect(s.bought.isEmpty)
+    }
 }

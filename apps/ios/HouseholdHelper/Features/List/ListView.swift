@@ -10,6 +10,7 @@ struct ListView: View {
     @State private var editing: ShoppingListItem?
     @State private var toggleTick = 0
     @State private var deleteTick = 0
+    @State private var checkoutTick = 0
 
     var body: some View {
         NavigationStack {
@@ -51,6 +52,7 @@ struct ListView: View {
             }
             .sensoryFeedback(.impact(weight: .light), trigger: toggleTick)
             .sensoryFeedback(.warning, trigger: deleteTick)
+            .sensoryFeedback(.success, trigger: checkoutTick)
         }
     }
 
@@ -76,7 +78,25 @@ struct ListView: View {
                             row(item)
                         }
                     } header: {
-                        Text("\(section.title) · \(section.items.count)")
+                        HStack {
+                            Text("\(section.title) · \(section.items.count)")
+                            Spacer()
+                            if section.basketCount > 0 {
+                                Button {
+                                    checkoutTick += 1
+                                    Task { await list.checkout(shopID: .some(section.shopID)) }
+                                } label: {
+                                    Label("Checkout \(section.basketCount)", systemImage: "cart.badge.checkmark")
+                                        .font(.subheadline.weight(.semibold))
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .buttonBorderShape(.capsule)
+                                .controlSize(.small)
+                                .tint(.green)
+                                .accessibilityIdentifier(A11y.listCheckout(section.title))
+                            }
+                        }
+                        .textCase(nil)
                     } footer: {
                         if section.shopID == nil {
                             Text("Long-press an item to assign a shop.")
@@ -137,9 +157,9 @@ struct ListView: View {
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
                 Button {
                     toggleTick += 1
-                    Task { await list.toggle(item) }
+                    Task { item.status == .bought ? await list.toggle(item) : await list.markBought(item) }
                 } label: {
-                    Label(item.status == .needed ? "Bought" : "Un-buy", systemImage: item.status == .needed ? "cart.badge.checkmark" : "arrow.uturn.backward")
+                    Label(item.status == .bought ? "Un-buy" : "Bought", systemImage: item.status == .bought ? "arrow.uturn.backward" : "cart.badge.checkmark")
                 }
                 .tint(.green)
                 .accessibilityIdentifier(A11y.listItemBought(item.name))
@@ -164,8 +184,13 @@ struct ListView: View {
                         .disabled(item.shopId == nil)
                 }
                 Button("Edit", systemImage: "pencil") { editing = item }
-                Button(item.status == .needed ? "Mark bought" : "Mark needed", systemImage: "checkmark.circle") {
-                    Task { await list.toggle(item) }
+                Button(item.status == .bought ? "Mark needed" : "Mark bought", systemImage: "checkmark.circle") {
+                    Task { item.status == .bought ? await list.toggle(item) : await list.markBought(item) }
+                }
+                if item.status != .bought {
+                    Button(item.status == .inBasket ? "Take out of basket" : "In the basket", systemImage: "basket") {
+                        Task { await list.toggle(item) }
+                    }
                 }
                 Divider()
                 Button("Delete", systemImage: "trash", role: .destructive) {
@@ -234,8 +259,8 @@ struct ItemRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: item.status == .bought ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(item.status == .bought ? Color.accentColor : .secondary)
+            Image(systemName: item.status == .needed ? "circle" : "checkmark.circle.fill")
+                .foregroundStyle(item.status == .inBasket ? Color.green : item.status == .bought ? Color.accentColor : Color.secondary)
                 .font(.title3)
                 .contentTransition(.symbolEffect(.replace))
             VStack(alignment: .leading, spacing: 2) {
@@ -267,7 +292,7 @@ struct ItemRow: View {
     private var accessibilityText: String {
         var parts = [item.name]
         if let q = item.quantity, !q.isEmpty { parts.append(q) }
-        parts.append(item.status == .bought ? "bought" : "needed")
+        parts.append(item.status == .bought ? "bought" : item.status == .inBasket ? "in basket" : "needed")
         if let shop = list.shop(item.shopId) { parts.append(shop.name) }
         return parts.joined(separator: ", ")
     }

@@ -20,10 +20,12 @@ log "alice adds 'Oat milk' on iOS → must appear on Android within 5 s"
 "$S/ios.sh" tap "$UDID_IPHONE17" list.add >/dev/null; sleep 1.5; "$S/ios.sh" type "$UDID_IPHONE17" "Oat milk" >/dev/null; "$S/ios.sh" tap "$UDID_IPHONE17" list.submit >/dev/null; sleep 5
 "$S/android.sh" tree | grep -q "list.item.Oat milk" && pass "android shows Oat milk" || fail "android missing Oat milk"
 
-log "bob marks it bought on Android → iOS shows it under Recently bought within 5 s"
+log "bob puts it in the basket on Android → iOS shows it ticked within 5 s; checkout → bought"
 "$S/android.sh" tap "list.item.Oat milk" >/dev/null; sleep 5
+"$S/ios.sh" tree "$UDID_IPHONE17" | grep "list.item.Oat milk" | grep -q "in basket" && pass "ios shows Oat milk in the basket" || fail "ios did not get the basket update (AXe tree may be empty: read screen.png)"
+"$S/android.sh" tap "list.checkout.Unsorted" >/dev/null; sleep 5
 "$S/ios.sh" tap "$UDID_IPHONE17" list.bought.toggle >/dev/null 2>&1 || true; sleep 1
-"$S/ios.sh" tree "$UDID_IPHONE17" | grep "list.item.Oat milk" | grep -q bought && pass "ios shows Oat milk bought" || fail "ios did not get the update (AXe tree may be empty: read screen.png)"
+"$S/ios.sh" tree "$UDID_IPHONE17" | grep "list.item.Oat milk" | grep -q bought && pass "ios shows Oat milk bought after checkout" || fail "ios did not get the checkout (AXe tree may be empty: read screen.png)"
 "$S/snap.sh" ios "$UDID_IPHONE17" "$label-ios" >/dev/null; "$S/snap.sh" android "$label-android" >/dev/null
 "$S/api.sh" alice GET "/v1/households/$H/items" | tail -1 | jq -c '.[] | select(.name=="Oat milk") | {status, added_by}'
 exit $FAILED

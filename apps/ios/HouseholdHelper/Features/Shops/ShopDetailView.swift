@@ -9,9 +9,15 @@ struct ShopDetailView: View {
     @State private var newName = ""
     @State private var confirmDelete = false
     @State private var toggleTick = 0
+    @State private var checkoutTick = 0
 
     private var shop: Shop? { list.shop(shopID) }
-    private var needed: [ShoppingListItem] { list.items.filter { $0.shopId == shopID && $0.status == .needed } }
+    /// Still to find first, ticked (in the basket) last.
+    private var needed: [ShoppingListItem] {
+        let open = list.items.filter { $0.shopId == shopID && $0.status != .bought }
+        return open.filter { $0.status == .needed } + open.filter { $0.status == .inBasket }
+    }
+    private var basketCount: Int { needed.filter { $0.status == .inBasket }.count }
 
     var body: some View {
         Group {
@@ -30,7 +36,9 @@ struct ShopDetailView: View {
                             Task { await list.toggle(item) }
                         } label: {
                             HStack(spacing: 12) {
-                                Image(systemName: "circle").foregroundStyle(.secondary)
+                                Image(systemName: item.status == .inBasket ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(item.status == .inBasket ? Color.green : Color.secondary)
+                                    .contentTransition(.symbolEffect(.replace))
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(item.name).foregroundStyle(.primary)
                                     if let qty = item.quantity, !qty.isEmpty {
@@ -42,11 +50,30 @@ struct ShopDetailView: View {
                         }
                         .tint(.primary)
                         .accessibilityIdentifier(A11y.shopRow(item.name))
-                        .accessibilityLabel("\(item.name)\(item.quantity.map { ", \($0)" } ?? ""), needed")
+                        .accessibilityLabel("\(item.name)\(item.quantity.map { ", \($0)" } ?? ""), \(item.status == .inBasket ? "in basket" : "needed")")
                     }
                 }
                 .listStyle(.insetGrouped)
+                .animation(.snappy, value: needed)
                 .refreshable { await list.refresh() }
+            }
+        }
+        .safeAreaBar(edge: .bottom) {
+            if basketCount > 0 {
+                Button {
+                    checkoutTick += 1
+                    Task { await list.checkout(shopID: .some(shopID)) }
+                } label: {
+                    Label("Checkout · \(basketCount) in the basket", systemImage: "cart.badge.checkmark")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                }
+                .buttonStyle(.glassProminent)
+                .tint(.green)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .accessibilityIdentifier(A11y.shopCheckout)
             }
         }
         .navigationTitle(shop?.name ?? "Shop")
@@ -79,5 +106,6 @@ struct ShopDetailView: View {
             Text("Items on the list move to Unsorted; your products keep their history.")
         }
         .sensoryFeedback(.impact(weight: .light), trigger: toggleTick)
+        .sensoryFeedback(.success, trigger: checkoutTick)
     }
 }

@@ -30,6 +30,7 @@ func (s *Server) routes(v1 *http.ServeMux) {
 	v1.HandleFunc("GET /v1/households/{hid}/items", s.member(s.listItems))
 	v1.HandleFunc("POST /v1/households/{hid}/items", s.member(s.createItem))
 	v1.HandleFunc("DELETE /v1/households/{hid}/items", s.member(s.clearBought))
+	v1.HandleFunc("POST /v1/households/{hid}/items/checkout", s.member(s.checkout))
 	v1.HandleFunc("PATCH /v1/households/{hid}/items/{itemId}", s.member(s.patchItem))
 	v1.HandleFunc("DELETE /v1/households/{hid}/items/{itemId}", s.member(s.deleteItem))
 

@@ -65,7 +65,7 @@ func TestMigrationsIdempotent(t *testing.T) {
 		}
 	}
 	v, err := db.AppliedMigrations(ctx)
-	if err != nil || len(v) != 3 || v[0] != 1 || v[1] != 2 || v[2] != 3 {
+	if err != nil || len(v) != 4 || v[0] != 1 || v[1] != 2 || v[2] != 3 || v[3] != 4 {
 		t.Fatalf("applied = %v, %v", v, err)
 	}
 	var mode string
@@ -93,6 +93,8 @@ func TestChecks(t *testing.T) {
 	execErr(t, db, "CHECK", `INSERT INTO households (id, name, created_at, updated_at) VALUES ('h2','',?,?)`, now, now)
 	execErr(t, db, "CHECK", `INSERT INTO household_members (household_id, user_id, role, joined_at) VALUES ('h1','u1','admin',?)`, now)
 	execErr(t, db, "CHECK", `INSERT INTO shopping_list_items (id, household_id, name, status, created_at, updated_at) VALUES ('l2','h1','Eggs','maybe',?,?)`, now, now)
+	exec(t, db, `INSERT INTO shopping_list_items (id, household_id, name, status, created_at, updated_at) VALUES ('l3','h1','Jam','in_basket',?,?)`, now, now)
+	execErr(t, db, "CHECK", `UPDATE shopping_list_items SET bought_at = ? WHERE id = 'l3'`, now) // in_basket is not bought
 	// status and bought_at must agree.
 	execErr(t, db, "CHECK", `UPDATE shopping_list_items SET status = 'bought' WHERE id = 'l1'`)
 	execErr(t, db, "CHECK", `UPDATE shopping_list_items SET bought_at = ? WHERE id = 'l1'`, now)

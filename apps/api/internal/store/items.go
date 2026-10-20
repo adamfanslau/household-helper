@@ -156,7 +156,7 @@ func (db *DB) CreateItem(ctx context.Context, hid, uid string, in NewItem) (Item
 // ItemPatch: Name/Status replace when non-nil; Quantity/ShopID are nullable optionals.
 type ItemPatch struct {
 	Name     *string
-	Status   *string // needed | bought; the server sets/clears bought_at
+	Status   *string // needed | in_basket | bought; the server sets/clears bought_at
 	Quantity Opt
 	ShopID   Opt
 }
@@ -210,6 +210,54 @@ func (db *DB) DeleteItem(ctx context.Context, hid, id string) error {
 		return ErrNotFound
 	}
 	return nil
+}
+
+// Checkout marks the household's in-basket items bought: all of them (scope nil), one shop's
+// (scope.Value = shop id) or the Unsorted ones (scope.Value = nil). Returns the updated rows.
+func (db *DB) Checkout(ctx context.Context, hid string, scope Opt) ([]ListItem, error) {
+	var out []ListItem
+	err := db.Tx(ctx, func(tx *sql.Tx) error {
+		where := `household_id = ? AND status = 'in_basket'`
+		args := []any{hid}
+		if scope.Set {
+			if scope.Value != nil {
+				where += ` AND shop_id = ?`
+				args = append(args, *scope.Value)
+			} else {
+				where += ` AND shop_id IS NULL`
+			}
+		}
+		rows, err := tx.QueryContext(ctx, `SELECT id FROM shopping_list_items WHERE `+where, args...)
+		if err != nil {
+			return err
+		}
+		var ids []string
+		for rows.Next() {
+			var id string
+			if err := rows.Scan(&id); err != nil {
+				rows.Close()
+				return err
+			}
+			ids = append(ids, id)
+		}
+		rows.Close()
+		now := Now()
+		for _, id := range ids {
+			if _, err := tx.ExecContext(ctx, `UPDATE shopping_list_items SET status = 'bought', bought_at = ?, updated_at = ? WHERE id = ?`, now, now, id); err != nil {
+				return err
+			}
+			it, err := db.getItem(ctx, tx, hid, id)
+			if err != nil {
+				return err
+			}
+			out = append(out, it)
+		}
+		return nil
+	})
+	if out == nil {
+		out = []ListItem{}
+	}
+	return out, err
 }
 
 // ClearBought deletes every bought item of the household and returns their ids (for SSE delete events).

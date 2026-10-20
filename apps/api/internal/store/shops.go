@@ -15,7 +15,7 @@ type Shop struct {
 	SortOrder   int    `json:"sort_order"`
 	CreatedAt   string `json:"created_at"`
 	UpdatedAt   string `json:"updated_at"`
-	NeededCount int    `json:"needed_count"` // computed: list items with status=needed in this shop
+	NeededCount int    `json:"needed_count"` // computed: list items not yet bought in this shop (needed + in_basket)
 }
 
 // CatalogItem is a household's product: what was bought before, with the last quantity
@@ -31,7 +31,7 @@ type CatalogItem struct {
 }
 
 const shopCols = `s.id, s.household_id, s.name, s.sort_order, s.created_at, s.updated_at,
-	(SELECT COUNT(*) FROM shopping_list_items i WHERE i.shop_id = s.id AND i.status = 'needed')`
+	(SELECT COUNT(*) FROM shopping_list_items i WHERE i.shop_id = s.id AND i.status <> 'bought')`
 
 func scanShop(row interface{ Scan(...any) error }) (Shop, error) {
 	var s Shop

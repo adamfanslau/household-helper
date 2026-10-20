@@ -171,6 +171,31 @@ func TestItems(t *testing.T) {
 		t.Fatalf("client id: %+v %+v", first, again)
 	}
 
+	// Basket + checkout: in_basket keeps the item on the list; checkout per shop marks bought.
+	var basket store.ListItem
+	e.expect(200, "a", "PATCH", base+"/items/"+fromCat.ID, `{"status":"in_basket"}`, &basket)
+	if basket.Status != "in_basket" || basket.BoughtAt != nil {
+		t.Fatalf("in_basket: %+v", basket)
+	}
+	e.expect(200, "a", "PATCH", base+"/items/"+oat2.ID, `{"status":"in_basket"}`, nil) // Costco
+	var checked []store.ListItem
+	e.expect(200, "a", "POST", base+"/items/checkout", `{"shop_id":"`+tj.ID+`"}`, &checked)
+	if len(checked) != 1 || checked[0].ID != fromCat.ID || checked[0].Status != "bought" || checked[0].BoughtAt == nil {
+		t.Fatalf("checkout TJ: %+v", checked)
+	}
+	e.expect(200, "a", "POST", base+"/items/checkout", `{"shop_id":null}`, &checked) // Unsorted: nothing in basket
+	if len(checked) != 0 {
+		t.Fatalf("checkout unsorted: %+v", checked)
+	}
+	e.expect(200, "a", "POST", base+"/items/checkout", `{}`, &checked) // everything left in the basket
+	if len(checked) != 1 || checked[0].ID != oat2.ID {
+		t.Fatalf("checkout all: %+v", checked)
+	}
+	code, body = e.as("a", "PATCH", base+"/items/"+oat.ID, `{"status":"maybe"}`, nil)
+	e.want(400, code, body)
+	e.expect(200, "a", "PATCH", base+"/items/"+fromCat.ID, `{"status":"needed"}`, nil)
+	e.expect(200, "a", "PATCH", base+"/items/"+oat2.ID, `{"status":"needed"}`, nil)
+
 	// needed_count on shops.
 	var shops []store.Shop
 	e.expect(200, "b", "GET", base+"/shops", "", &shops)

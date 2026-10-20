@@ -60,6 +60,11 @@ carol has no household (onboarding flows; `launch "$U" carol`). alice owns "Mock
 (Milk 1 gal, Bananas), Costco (Paper towels), Unsorted (Batteries), bought: Eggs. bob owns "The
 Neighbors" (`JOIN5678`) and must join `MOCK1234` to see the list.
 
+Shopping is two steps: tap a row = in the basket (green tick, sinks to the bottom of its shop, label says
+"in basket"); the section header then shows `list.checkout.<section title>` (Unsorted included) and the
+shop screen a bottom `shop.checkout` bar; checkout turns the basket into bought. Swipe leading / context
+menu "Mark bought" still go straight to bought; the context menu also has "In the basket / Take out of basket".
+
 Add/edit sheet (`list.add` opens it; context menu › Edit reuses it): `list.input` (product, typing hints
 appear as `list.suggestion.<name>`), `list.quantity`, `list.shop` (menu picker: shops + "New shop…"),
 `list.newShop`, `list.submit`. Shop detail is the shop's needed items: `shop.row.<name>` (tap = bought),

@@ -65,7 +65,11 @@ Deep links: `householdhelper://list | shops | shops/<uuid> | settings | join/<CO
   carries `Modifier.exposeTestTags()` (ui/Semantics.kt). Add it to any new sheet/dialog/popup.
 - The keyboard stays open after `type`; on the list screen `back` once before tapping the lower half,
   but inside the add sheet `back` dismisses the sheet: use `key KEYCODE_ENTER` (Done submits) instead.
-- Products are household-wide (typing hints with last quantity/shop); shop detail shows the shop's needed items.
+- Products are household-wide (typing hints with last quantity/shop); shop detail shows the shop's open items.
+- Shopping is two steps: tapping a row = in the basket (filled green tick, sinks to the bottom of its shop,
+  description "in basket"); the section header then shows `list.checkout.<title>` and the shop screen a
+  `shop.checkout` bar; checkout turns the basket into bought. Swipe right and the sheet's "Mark bought" go
+  straight to bought; the sheet also has `item.basket` ("In the basket" / "Take out of basket").
 - `uiautomator dump` waits for an idle UI; `wait`/`waittext` poll instead of fixed sleeps. `taptext` must
   run while the snackbar (5 s undo grace) is still showing.
 - Settings is a scrolling list; `swipe up` before `settings.signOut` at large font scales.

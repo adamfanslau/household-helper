@@ -124,10 +124,33 @@ class ListRepository(private val api: ApiClient) {
         }
     }
 
+    /** Tap: needed ⇄ in the basket; a bought item goes back to needed (un-buy). */
     suspend fun toggle(item: ShoppingListItem) {
-        val next = if (item.isBought) item.copy(status = "needed", boughtAt = null) else item.copy(status = "bought", boughtAt = Now.iso())
-        bumpNeeded(item.shopId, if (next.isBought) -1 else 1)
+        val next = item.copy(status = if (item.status == "needed") "in_basket" else "needed", boughtAt = null)
+        if (item.isBought) bumpNeeded(item.shopId, 1)
         patch(item, JsonObject(mapOf("status" to JsonPrimitive(next.status))), next)
+    }
+
+    /** Swipe / sheet: straight to bought (skipping the basket). */
+    suspend fun markBought(item: ShoppingListItem) {
+        if (item.isBought) return
+        bumpNeeded(item.shopId, -1)
+        patch(item, JsonObject(mapOf("status" to JsonPrimitive("bought"))), item.copy(status = "bought", boughtAt = Now.iso()))
+    }
+
+    /** Checkout: the basket of one shop (shopId), of Unsorted (shopId = null, unsorted = true) or everything. */
+    suspend fun checkout(shopId: String?, unsorted: Boolean = false) {
+        val h = hid ?: return
+        val before = _items.value
+        val inScope: (ShoppingListItem) -> Boolean = { it.isInBasket && (shopId == null && !unsorted || it.shopId == shopId) }
+        val now = Now.iso()
+        _items.update { list -> list.map { if (inScope(it)) it.copy(status = "bought", boughtAt = now) else it } }
+        before.filter(inScope).forEach { bumpNeeded(it.shopId, -1) }
+        val body = if (shopId != null) JsonObject(mapOf("shop_id" to JsonPrimitive(shopId))) else if (unsorted) JsonObject(mapOf("shop_id" to JsonNull)) else JsonObject(emptyMap())
+        try {
+            val saved: List<ShoppingListItem> = api.post("/v1/households/$h/items/checkout", body)
+            saved.forEach { replace(it) }
+        } catch (e: Exception) { _items.value = before; error.value = e.message }
     }
 
     suspend fun move(item: ShoppingListItem, shopId: String?) {
@@ -279,7 +302,9 @@ object Now {
 /** Pure grouping: needed items by shop in sort order, Unsorted last, bought separate. */
 object ListGrouping {
     const val UNSORTED = "__unsorted__"
-    data class Section(val id: String, val title: String, val shopId: String?, val items: List<ShoppingListItem>)
+    data class Section(val id: String, val title: String, val shopId: String?, val items: List<ShoppingListItem>) {
+        val basketCount: Int get() = items.count { it.isInBasket }
+    }
     data class Sections(val needed: List<Section>, val bought: List<ShoppingListItem>) {
         val isEmpty: Boolean get() = needed.isEmpty() && bought.isEmpty()
     }
@@ -290,6 +315,8 @@ object ListGrouping {
         for (item in items) {
             if (item.isBought) bought += item else byShop.getOrPut(item.shopId ?: UNSORTED) { ArrayList() } += item
         }
+        // Ticked items sink to the bottom of their shop so what is still to find stays on top.
+        for (key in byShop.keys.toList()) byShop[key] = byShop[key]!!.let { l -> (l.filter { !it.isInBasket } + l.filter { it.isInBasket }).toMutableList() }
         val needed = ArrayList<Section>()
         for (shop in shops.sortedWith(compareBy({ it.sortOrder }, { it.createdAt }))) {
             byShop[shop.id]?.takeIf { it.isNotEmpty() }?.let { needed += Section(shop.id, shop.name, shop.id, it) }
