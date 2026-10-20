@@ -64,7 +64,7 @@ struct ShopDetailView: View {
                     checkoutTick += 1
                     Task { await list.checkout(shopID: .some(shopID)) }
                 } label: {
-                    Label("Checkout · \(basketCount) in the basket", systemImage: "cart.badge.checkmark")
+                    Label("Checkout · \(basketCount) in the basket", systemImage: "cart.fill")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 6)

@@ -86,8 +86,12 @@ struct ListView: View {
                                     checkoutTick += 1
                                     Task { await list.checkout(shopID: .some(section.shopID)) }
                                 } label: {
-                                    Label("Checkout \(section.basketCount)", systemImage: "cart.badge.checkmark")
-                                        .font(.subheadline.weight(.semibold))
+                                    // Not a Label: List section headers render labels title-only.
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "cart.fill")
+                                        Text("Checkout \(section.basketCount)")
+                                    }
+                                    .font(.subheadline.weight(.semibold))
                                 }
                                 .buttonStyle(.borderedProminent)
                                 .buttonBorderShape(.capsule)
@@ -159,7 +163,7 @@ struct ListView: View {
                     toggleTick += 1
                     Task { item.status == .bought ? await list.toggle(item) : await list.markBought(item) }
                 } label: {
-                    Label(item.status == .bought ? "Un-buy" : "Bought", systemImage: item.status == .bought ? "arrow.uturn.backward" : "cart.badge.checkmark")
+                    Label(item.status == .bought ? "Un-buy" : "Bought", systemImage: item.status == .bought ? "arrow.uturn.backward" : "cart.fill")
                 }
                 .tint(.green)
                 .accessibilityIdentifier(A11y.listItemBought(item.name))
