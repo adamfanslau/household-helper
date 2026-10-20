@@ -84,6 +84,11 @@ import com.householdhelper.app.ui.ShopGlyph
 import com.householdhelper.app.ui.theme.Brand
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.Modifier
 import com.householdhelper.app.ui.exposeTestTags
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -138,6 +143,7 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,   // cards sit on a tinted ground
         topBar = {
             TopAppBar(
                 title = {
@@ -154,6 +160,7 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
                     }
                 },
                 scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow, scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer),
             )
         },
         snackbarHost = { SnackbarHost(snackbar, Modifier.testTag("snackbar")) },
@@ -188,8 +195,8 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
                     sections.needed.forEach { section ->
                         stickyHeader(key = "h-${section.id}") {
                             val tint = if (section.shopId == null) MaterialTheme.colorScheme.outline else Brand.shopColor(section.title)
-                            Surface(color = MaterialTheme.colorScheme.surface) {
-                                Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 6.dp)) {
+                            Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                                Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 8.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         ShopGlyph(name = section.shopId?.let { section.title }, size = 30.dp)
                                         Spacer(Modifier.width(10.dp))
@@ -219,18 +226,26 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
                                 }
                             }
                         }
-                        items(section.items, key = { it.id }) { item ->
+                        itemsIndexed(section.items, key = { _, it -> it.id }) { index, item ->
+                            // Rows of one shop sit in one card (top/bottom corners on the first/last row),
+                            // so a shop header and its products read as a group, not a run of lines.
+                            val first = index == 0; val last = index == section.items.lastIndex
+                            val shape = RoundedCornerShape(topStart = if (first) 20.dp else 0.dp, topEnd = if (first) 20.dp else 0.dp, bottomStart = if (last) 20.dp else 0.dp, bottomEnd = if (last) 20.dp else 0.dp)
                             SwipeRow(
                                 item = item,
                                 onBought = { haptics.performHapticFeedback(HapticFeedbackType.ToggleOn); scope.launch { container.list.markBought(item) } },
                                 onDelete = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); container.list.delete(item) },
-                                modifier = Modifier.animateItem(),
+                                modifier = Modifier.animateItem().padding(horizontal = 16.dp).shadow(if (last) 1.dp else 0.dp, shape, clip = false).clip(shape).background(MaterialTheme.colorScheme.surfaceContainerLowest),
                             ) {
-                                ItemRow(item, container.list.shop(item.shopId)?.name,
-                                    onClick = { haptics.performHapticFeedback(HapticFeedbackType.ToggleOn); scope.launch { container.list.toggle(item) } },
-                                    onLongClick = { sheetItem = item }, meUid = container.auth.uid)
+                                Column {
+                                    ItemRow(item, container.list.shop(item.shopId)?.name,
+                                        onClick = { haptics.performHapticFeedback(HapticFeedbackType.ToggleOn); scope.launch { container.list.toggle(item) } },
+                                        onLongClick = { sheetItem = item }, meUid = container.auth.uid)
+                                    if (!last) HorizontalDivider(Modifier.padding(start = 58.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                }
                             }
                         }
+                        item(key = "gap-${section.id}") { Spacer(Modifier.height(10.dp)) }
                         if (section.shopId == null) item(key = "f-unsorted") {
                             Text("Long-press an item to assign a shop.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 16.dp, top = 4.dp))
                         }
