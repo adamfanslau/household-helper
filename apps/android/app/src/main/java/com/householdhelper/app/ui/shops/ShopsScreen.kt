@@ -112,7 +112,9 @@ fun ShopsScreen(container: AppContainer, modifier: Modifier = Modifier) {
 @Composable
 private fun ShopsListScreen(container: AppContainer, onOpen: (Shop) -> Unit) {
     val scope = rememberCoroutineScope()
-    val shops by container.list.shops.collectAsStateWithLifecycle()
+    val allShops by container.list.shops.collectAsStateWithLifecycle()
+    val items by container.list.items.collectAsStateWithLifecycle()
+    val shops = remember(allShops, items) { com.householdhelper.app.data.ListRepository.Counts.byActivity(allShops, items) }
     var draft by remember { mutableStateOf("") }
     var pendingDelete by remember { mutableStateOf<Shop?>(null) }
 
@@ -157,14 +159,18 @@ private fun ShopsListScreen(container: AppContainer, onOpen: (Shop) -> Unit) {
                         headlineContent = { Text(shop.name) },
                         leadingContent = { Icon(Icons.Outlined.Storefront, null) },
                         trailingContent = {
+                            val open = com.householdhelper.app.data.ListRepository.Counts.openCount(items, shop.id)
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (shop.neededCount > 0) Badge { Text("${shop.neededCount}") }
+                                if (open > 0) Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.primaryContainer) {
+                                    Text("$open", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp).testTag("shops.count.${shop.name}"))
+                                }
                                 Spacer(Modifier.width(8.dp))
                                 Icon(Icons.Outlined.ChevronRight, null)
                             }
                         },
                         modifier = Modifier.clickable { onOpen(shop) }
-                            .semantics(mergeDescendants = true) { contentDescription = "${shop.name}, ${shop.neededCount} needed" }
+                            .semantics(mergeDescendants = true) { contentDescription = "${shop.name}, ${com.householdhelper.app.data.ListRepository.Counts.openCount(items, shop.id)} to buy" }
                             .testTag("shops.row.${shop.name}"),
                     )
                 }

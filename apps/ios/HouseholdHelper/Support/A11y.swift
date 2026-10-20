@@ -36,6 +36,7 @@ nonisolated enum A11y {
     static let shopsInput = "shops.input"
     static let shopsAdd = "shops.add"
     static func shopsRow(_ name: String) -> String { "shops.row.\(name)" }
+    static func shopsCount(_ name: String) -> String { "shops.count.\(name)" }
     static let shopMenu = "shop.menu"
     static func shopRow(_ name: String) -> String { "shop.row.\(name)" }
 

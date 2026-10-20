@@ -93,6 +93,15 @@ class ListRepository(private val api: ApiClient) {
 
     fun shop(id: String?): Shop? = id?.let { s -> _shops.value.firstOrNull { it.id == s } }
 
+    object Counts {
+        /** Items still to buy at a shop (needed + in the basket), derived from the live list. */
+        fun openCount(items: List<ShoppingListItem>, shopId: String): Int = items.count { it.shopId == shopId && !it.isBought }
+
+        /** Shops with the most to buy first; ties keep the household's order. */
+        fun byActivity(shops: List<Shop>, items: List<ShoppingListItem>): List<Shop> =
+            shops.sortedWith(compareByDescending<Shop> { openCount(items, it.id) }.thenBy { it.sortOrder }.thenBy { it.createdAt })
+    }
+
     // MARK: items
 
     /** Adds optimistically with a client id so the server echo (and a retry) de-duplicate. */

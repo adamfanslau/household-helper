@@ -38,6 +38,21 @@ final class ListStore {
         return shops.first { $0.id == id }
     }
 
+    /// Items still to buy at a shop (needed + in the basket), derived from the live list so it
+    /// updates on every change, including ones that arrive over SSE.
+    func openCount(for shopID: String) -> Int {
+        items.filter { $0.shopId == shopID && $0.status != .bought }.count
+    }
+
+    /// Shops with the most to buy first; ties keep the household's order.
+    var shopsByActivity: [Shop] {
+        shops.sorted { a, b in
+            let (ca, cb) = (openCount(for: a.id), openCount(for: b.id))
+            if ca != cb { return ca > cb }
+            return (a.sortOrder, a.createdAt) < (b.sortOrder, b.createdAt)
+        }
+    }
+
     // MARK: loading
 
     func load(householdID: String) async {

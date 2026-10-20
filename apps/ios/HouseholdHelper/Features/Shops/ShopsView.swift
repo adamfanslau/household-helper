@@ -19,17 +19,30 @@ struct ShopsView: View {
                     }
                 } else {
                     List {
-                        ForEach(list.shops) { shop in
+                        ForEach(list.shopsByActivity) { shop in
+                            let open = list.openCount(for: shop.id)
                             NavigationLink(value: shop.id) {
-                                Label {
-                                    Text(shop.name)
-                                } icon: {
-                                    Image(systemName: "storefront")
+                                HStack {
+                                    Label {
+                                        Text(shop.name)
+                                    } icon: {
+                                        Image(systemName: "storefront")
+                                    }
+                                    Spacer()
+                                    if open > 0 {
+                                        Text("\(open)")
+                                            .font(.subheadline.weight(.semibold))
+                                            .monospacedDigit()
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 3)
+                                            .background(Color.accentColor.opacity(0.15), in: Capsule())
+                                            .foregroundStyle(Color.accentColor)
+                                            .accessibilityIdentifier(A11y.shopsCount(shop.name))
+                                    }
                                 }
-                                .badge(shop.neededCount > 0 ? shop.neededCount : 0)
                             }
                             .accessibilityIdentifier(A11y.shopsRow(shop.name))
-                            .accessibilityLabel("\(shop.name), \(shop.neededCount) needed")
+                            .accessibilityLabel("\(shop.name), \(open) to buy")
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
                                     pendingDelete = shop
@@ -40,6 +53,7 @@ struct ShopsView: View {
                         }
                     }
                     .listStyle(.insetGrouped)
+                    .animation(.snappy, value: list.shopsByActivity)
                     .refreshable { await list.refresh() }
                 }
             }
