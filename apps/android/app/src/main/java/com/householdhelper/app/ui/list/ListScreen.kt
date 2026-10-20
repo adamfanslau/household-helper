@@ -106,6 +106,15 @@ import com.householdhelper.app.data.AppContainer
 import com.householdhelper.app.data.ListGrouping
 import com.householdhelper.app.data.ShoppingListItem
 import com.householdhelper.app.ui.settings.shareInvite
+import com.householdhelper.app.ui.BrandMark
+import com.householdhelper.app.ui.onboarding.JoinSheet
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.ui.text.style.TextOverflow
 import kotlinx.coroutines.launch
 
 /** The home screen: needed items grouped by shop, Unsorted last, Recently bought, add bar above the keyboard. */
@@ -140,6 +149,14 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
     val sections = remember(items, shops) { ListGrouping.sections(items, shops) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val code = invites.firstOrNull { it.revokedAt == null }?.code
+    val households by container.households.households.collectAsStateWithLifecycle()
+    var householdMenu by remember { mutableStateOf(false) }
+    var showJoin by remember { mutableStateOf(false) }
+    // "6 to buy · 2 in the basket" under the title; the household itself lives in the pill.
+    val summary = remember(items) {
+        val open = items.count { !it.isBought }; val basket = items.count { it.isInBasket }
+        when { open == 0 -> "Nothing to buy"; basket > 0 -> "$open to buy · $basket in the basket"; else -> "$open to buy" }
+    }
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -149,10 +166,44 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
                 title = {
                     Column {
                         Text("Shopping")
-                        Text(household?.name ?: "", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("list.summary"))
                     }
                 },
                 actions = {
+                    // The household pill: which home this list belongs to, and the switch.
+                    Box {
+                        Surface(
+                            onClick = { householdMenu = true },
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                            shadowElevation = 1.dp,
+                            modifier = Modifier.semantics { contentDescription = "Household: ${household?.name ?: ""}" }.testTag("list.household"),
+                        ) {
+                            Row(Modifier.padding(start = 10.dp, end = 8.dp, top = 7.dp, bottom = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.Home, contentDescription = null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                Spacer(Modifier.width(6.dp))
+                                Text(household?.name ?: "", style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 150.dp))
+                                Icon(Icons.Outlined.ExpandMore, contentDescription = null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        DropdownMenu(expanded = householdMenu, onDismissRequest = { householdMenu = false }, modifier = Modifier.exposeTestTags()) {
+                            households.forEach { h ->
+                                DropdownMenuItem(
+                                    text = { Text(h.name) },
+                                    leadingIcon = { if (h.id == household?.id) Icon(Icons.Outlined.Check, contentDescription = "selected") else Spacer(Modifier.size(24.dp)) },
+                                    onClick = { householdMenu = false; scope.launch { container.households.select(h) } },
+                                    modifier = Modifier.testTag("list.household.${h.name}"),
+                                )
+                            }
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text("Create or join another household") },
+                                leadingIcon = { Icon(Icons.Outlined.Add, contentDescription = null) },
+                                onClick = { householdMenu = false; showJoin = true },
+                                modifier = Modifier.testTag("list.household.add"),
+                            )
+                        }
+                    }
                     if (code != null) {
                         IconButton(onClick = { shareInvite(context, code, household?.name ?: "") }, modifier = Modifier.testTag("list.share")) {
                             Icon(Icons.Outlined.Share, contentDescription = "Share invite")
@@ -184,7 +235,9 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
             indicator = { PullToRefreshDefaults.LoadingIndicator(state = rememberPullToRefreshState(), isRefreshing = refreshing, modifier = Modifier.align(Alignment.TopCenter)) },
         ) {
             when {
-                loading && items.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
+                loading && items.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    BrandMark(72.dp, darkTile = false, spinning = true, modifier = Modifier.semantics { contentDescription = "Loading" }.testTag("list.loading"))
+                }
                 sections.isEmpty -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         EmptyState(Icons.Outlined.ShoppingCart, "Nothing to buy", "Tap Add when something runs out at home. Everyone in the household sees it instantly.")
@@ -303,6 +356,7 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
     }
 
     if (showAdd) AddItemSheet(container, scope, onDismiss = { showAdd = false })
+    if (showJoin) JoinSheet(container, code = null, onDismiss = { showJoin = false })
 
     editing?.let { item ->
         var name by remember(item.id) { mutableStateOf(item.name) }

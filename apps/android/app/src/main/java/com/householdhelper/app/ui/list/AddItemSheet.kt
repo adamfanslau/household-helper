@@ -11,7 +11,9 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.NorthWest
+import androidx.compose.foundation.layout.size
+import com.householdhelper.app.ui.SparkGlyph
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -46,6 +48,17 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 private const val NEW_SHOP = "__new__"
+
+/** "Last time: 2 kg at Costco" from what the product remembers; null when it remembers nothing. */
+internal fun lastTime(p: CatalogItem, shopName: String?): String? {
+    val unit = p.defaultUnit?.trim().orEmpty()
+    return when {
+        unit.isNotEmpty() && shopName != null -> "Last time: $unit at $shopName"
+        unit.isNotEmpty() -> "Last time: $unit"
+        shopName != null -> "Last time at $shopName"
+        else -> null
+    }
+}
 
 /**
  * The add flow (floating +): product with typing hints from the household's products, size/quantity,
@@ -106,10 +119,13 @@ fun AddItemSheet(container: AppContainer, scope: CoroutineScope, onDismiss: () -
                 modifier = Modifier.fillMaxWidth().focusRequester(focus).testTag("list.input"),
             )
             suggestions.forEach { p ->
+                // The spark marks what the app remembers for you (the "smart" glyph).
+                val hint = lastTime(p, shops.firstOrNull { it.id == p.shopId }?.name)
                 ListItem(
                     headlineContent = { Text(p.name) },
-                    leadingContent = { Icon(Icons.Outlined.History, null) },
-                    trailingContent = p.defaultUnit?.takeIf { it.isNotBlank() }?.let { { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) } },
+                    supportingContent = hint?.let { { Text(it) } },
+                    leadingContent = { SparkGlyph(size = 20.dp) },
+                    trailingContent = { Icon(Icons.Outlined.NorthWest, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(16.dp)) },
                     modifier = Modifier.clickable { pick(p) }.testTag("list.suggestion.${p.name}"),
                 )
             }

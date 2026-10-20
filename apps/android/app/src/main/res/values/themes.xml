@@ -3,7 +3,7 @@
         <item name="android:windowLightStatusBar">true</item>
     </style>
     <style name="Theme.HouseholdHelper.Starting" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">#E6F4FE</item>
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
         <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
         <item name="postSplashScreenTheme">@style/Theme.HouseholdHelper</item>
     </style>

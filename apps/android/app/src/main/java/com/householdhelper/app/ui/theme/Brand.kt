@@ -22,6 +22,9 @@ object Brand {
     val PrimaryDeep = Color(0xFF0E6B47)
     val Mint = Color(0xFFC8F2DD)
     val Basket = Color(0xFF21B873)
+    val MintBright = Color(0xFF6FD9A6)   // the mark's roof/spark on dark
+    val Ink = Color(0xFF10201A)          // the mark's dark tile
+    val InkSoft = Color(0xFF1E3A2C)
 
     val ShopPalette = listOf(
         Color(0xFFF26B5B), // coral

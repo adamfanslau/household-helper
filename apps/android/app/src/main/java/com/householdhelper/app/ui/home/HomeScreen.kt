@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Checklist
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.Icon
@@ -64,11 +64,11 @@ fun HomeScreen(container: AppContainer) {
                             onClick = { container.router.tab.value = t },
                             icon = {
                                 Icon(
-                                    when (t) { AppRouter.Tab.LIST -> Icons.Outlined.Checklist; AppRouter.Tab.SHOPS -> Icons.Outlined.Storefront; AppRouter.Tab.SETTINGS -> Icons.Outlined.Settings },
+                                    when (t) { AppRouter.Tab.LIST -> Icons.Outlined.Checklist; AppRouter.Tab.SHOPS -> Icons.Outlined.Storefront; AppRouter.Tab.HOUSEHOLD -> Icons.Outlined.Home },
                                     contentDescription = null,
                                 )
                             },
-                            label = { Text(when (t) { AppRouter.Tab.LIST -> "List"; AppRouter.Tab.SHOPS -> "Shops"; AppRouter.Tab.SETTINGS -> "Settings" }) },
+                            label = { Text(when (t) { AppRouter.Tab.LIST -> "List"; AppRouter.Tab.SHOPS -> "Shops"; AppRouter.Tab.HOUSEHOLD -> "Household" }) },
                             modifier = Modifier.testTag("tab.${t.name.lowercase()}"),
                         )
                     }
@@ -78,7 +78,7 @@ fun HomeScreen(container: AppContainer) {
             when (tab) {
                 AppRouter.Tab.LIST -> ListScreen(container, Modifier.padding(padding))
                 AppRouter.Tab.SHOPS -> ShopsScreen(container, Modifier.padding(padding))
-                AppRouter.Tab.SETTINGS -> SettingsScreen(container, Modifier.padding(padding))
+                AppRouter.Tab.HOUSEHOLD -> SettingsScreen(container, Modifier.padding(padding))
             }
         }
         ConnectionPill(container, Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 8.dp))

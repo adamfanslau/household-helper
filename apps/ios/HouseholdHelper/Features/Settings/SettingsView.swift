@@ -19,10 +19,35 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Household") {
-                    LabeledContent("Name", value: households.current?.name ?? "—")
-                        .contextMenu { Button("Rename", systemImage: "pencil") { newName = households.current?.name ?? ""; renaming = true } }
-                    LabeledContent("Signed in as", value: auth.email ?? "—")
+                // The home card: this household, and who you are in it.
+                Section {
+                    HStack(spacing: 14) {
+                        Image(systemName: "house.fill")
+                            .font(.title2.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 52, height: 52)
+                            .background(.white.opacity(0.18), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(households.current?.name ?? "—")
+                                .font(.title3.bold())
+                                .foregroundStyle(.white)
+                                .accessibilityIdentifier(A11y.settingsName)
+                            Text("Signed in as \(auth.email ?? "—")")
+                                .font(.footnote)
+                                .foregroundStyle(.white.opacity(0.85))
+                        }
+                        Spacer()
+                        Menu {
+                            Button("Rename household", systemImage: "pencil") { newName = households.current?.name ?? ""; renaming = true }
+                        } label: {
+                            Image(systemName: "ellipsis.circle.fill")
+                                .font(.title3)
+                                .foregroundStyle(.white.opacity(0.9))
+                        }
+                        .accessibilityIdentifier(A11y.settingsMenu)
+                    }
+                    .padding(.vertical, 8)
+                    .listRowBackground(Brand.gradient)
                 }
                 Section {
                     if let code = households.currentCode {
@@ -100,7 +125,7 @@ struct SettingsView: View {
                         .accessibilityIdentifier(A11y.settingsSignOut)
                 }
             }
-            .navigationTitle("Settings")
+            .navigationTitle("Household")
             .task(id: households.current?.id) { await households.loadInvites() }
             .task { await push.refreshStatus() }
             .sheet(isPresented: $showOnboarding) {

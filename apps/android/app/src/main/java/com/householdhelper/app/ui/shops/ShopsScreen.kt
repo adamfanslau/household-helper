@@ -87,6 +87,16 @@ import com.householdhelper.app.data.AppContainer
 import com.householdhelper.app.data.Shop
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import com.householdhelper.app.data.ShoppingListItem
+import com.householdhelper.app.ui.SparkGlyph
 
 @Serializable
 data object ShopsList : NavKey
@@ -128,7 +138,14 @@ private fun ShopsListScreen(container: AppContainer, onOpen: (Shop) -> Unit) {
     fun add() { val n = draft.trim(); if (n.isEmpty()) return; draft = ""; scope.launch { container.list.addShop(n) } }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Shops") }) },
+        topBar = {
+            TopAppBar(title = {
+                Column {
+                    Text("Shops")
+                    if (shops.isNotEmpty()) Text("Most to buy first", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            })
+        },
         bottomBar = {
             Surface(tonalElevation = 3.dp, modifier = Modifier.imePadding()) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -189,6 +206,26 @@ private fun ShopsListScreen(container: AppContainer, onOpen: (Shop) -> Unit) {
                     )
                 }
             }
+            item(key = "order-note") {
+                // Why the order moves: a dark brand card with the spark.
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).semantics(mergeDescendants = true) {},
+                ) {
+                    Row(
+                        Modifier.background(Brush.linearGradient(listOf(Brand.Ink, Brand.InkSoft))).padding(horizontal = 18.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        SparkGlyph(size = 22.dp, tint = Brand.MintBright)
+                        Spacer(Modifier.width(14.dp))
+                        Column {
+                            Text("Shopping order follows you", style = MaterialTheme.typography.titleSmall, color = Color.White)
+                            Text("Shops with the most left to buy rise to the top, so the next errand is always first.",
+                                style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.78f))
+                        }
+                    }
+                }
+            }
         }
     }
     pendingDelete?.let { shop ->
@@ -211,7 +248,9 @@ fun ShopDetailScreen(container: AppContainer, shopId: String, onBack: () -> Unit
     val items by container.list.items.collectAsStateWithLifecycle()
     val shop = shops.firstOrNull { it.id == shopId }
     val needed = remember(items) { items.filter { it.shopId == shopId && !it.isBought }.let { l -> l.filter { !it.isInBasket } + l.filter { it.isInBasket } } }
-    val basket = needed.count { it.isInBasket }
+    val toFind = needed.filter { !it.isInBasket }
+    val inBasket = needed.filter { it.isInBasket }
+    val basket = inBasket.size
     val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
     var menu by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf(false) }
@@ -255,7 +294,7 @@ fun ShopDetailScreen(container: AppContainer, shopId: String, onBack: () -> Unit
                 Column(Modifier.weight(1f)) {
                     Text(shop?.name ?: "Shop", style = MaterialTheme.typography.headlineSmall)
                     Text(
-                        when { needed.isEmpty() -> "All done here"; basket > 0 -> "$basket of ${needed.size} in the basket"; else -> "${needed.size} to buy" },
+                        when { needed.isEmpty() -> "All done here"; basket > 0 -> "$basket of ${needed.size} in the basket · ${toFind.size} left to find"; else -> "${needed.size} to buy" },
                         style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -275,18 +314,35 @@ fun ShopDetailScreen(container: AppContainer, shopId: String, onBack: () -> Unit
                 Spacer(Modifier.height(24.dp))
                 EmptyState(Brand.shopIcon(shop?.name ?: ""), "Nothing to buy here", "Items you add for ${shop?.name ?: "this shop"} show up here, ready to tick off in the aisle.")
             }
-        } else LazyColumn(Modifier.fillMaxSize().padding(padding)) {
+        } else LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(bottom = 16.dp)) {
             item(key = "header") { header() }
-            items(needed, key = { it.id }) { item ->
-                ListItem(
-                    headlineContent = { Text(item.name, color = if (item.isInBasket) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface) },
-                    supportingContent = item.quantity?.takeIf { it.isNotBlank() }?.let { { Chip(it, tint, Modifier.padding(top = 3.dp)) } },
-                    leadingContent = { CheckMark(item.status, tint) },
-                    modifier = Modifier.animateItem().clickable { haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.ToggleOn); scope.launch { container.list.toggle(item) } }
-                        .semantics(mergeDescendants = true) { contentDescription = "${item.name}${item.quantity?.let { ", $it" } ?: ""}, ${if (item.isInBasket) "in basket" else "needed"}" }
-                        .testTag("shop.row.${item.name}"),
-                )
+            // The aisle is two piles: what is still to find on top, what is already in the basket below.
+            fun LazyListScope.pile(label: String, rows: List<ShoppingListItem>) {
+                if (rows.isEmpty()) return
+                item(key = "label-$label") {
+                    Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 20.dp, top = 14.dp, bottom = 6.dp).testTag("shop.section.$label"))
+                }
+                itemsIndexed(rows, key = { _, it -> it.id }) { index, item ->
+                    val first = index == 0; val last = index == rows.lastIndex
+                    val shape = RoundedCornerShape(topStart = if (first) 20.dp else 0.dp, topEnd = if (first) 20.dp else 0.dp, bottomStart = if (last) 20.dp else 0.dp, bottomEnd = if (last) 20.dp else 0.dp)
+                    Column(Modifier.animateItem().padding(horizontal = 16.dp).clip(shape).background(MaterialTheme.colorScheme.surfaceContainerLowest)) {
+                        ListItem(
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                            headlineContent = { Text(item.name, color = if (item.isInBasket) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface) },
+                            supportingContent = item.quantity?.takeIf { it.isNotBlank() }?.let { { Chip(it, tint, Modifier.padding(top = 3.dp)) } },
+                            leadingContent = { CheckMark(item.status, tint) },
+                            trailingContent = if (item.isInBasket) null else { { Text("Tap to tick", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline) } },
+                            modifier = Modifier.clickable { haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.ToggleOn); scope.launch { container.list.toggle(item) } }
+                                .semantics(mergeDescendants = true) { contentDescription = "${item.name}${item.quantity?.let { ", $it" } ?: ""}, ${if (item.isInBasket) "in basket" else "needed"}" }
+                                .testTag("shop.row.${item.name}"),
+                        )
+                        if (!last) HorizontalDivider(Modifier.padding(start = 60.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    }
+                }
             }
+            pile("Still to find", toFind)
+            pile("In the basket", inBasket)
         }
     }
     if (renaming) AlertDialog(

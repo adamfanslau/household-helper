@@ -1,4 +1,4 @@
-// Tab selection, navigation paths and deep links: householdhelper://list | shops | shops/<id> | settings | join/<CODE>
+// Tab selection, navigation paths and deep links: householdhelper://list | shops | shops/<id> | household (alias settings) | join/<CODE>
 import Foundation
 import Observation
 import SwiftUI
@@ -23,7 +23,7 @@ final class AppRouter {
             tab = .shops
             shopsPath = NavigationPath()
             if parts.count > 1 { shopsPath.append(parts[1]) } // shop id; ShopsView resolves it
-        case "settings":
+        case "settings", "household":
             tab = .settings
         case "join":
             guard parts.count > 1 else { return false }

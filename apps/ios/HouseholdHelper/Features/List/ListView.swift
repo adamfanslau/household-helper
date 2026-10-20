@@ -7,6 +7,7 @@ struct ListView: View {
     @Environment(ListStore.self) private var list
     @State private var showBought = false
     @State private var showAdd = false
+    @State private var showOnboarding = false
     @State private var editing: ShoppingListItem?
     @State private var toggleTick = 0
     @State private var deleteTick = 0
@@ -23,8 +24,38 @@ struct ListView: View {
                 }
             }
             .navigationTitle("Shopping")
-            .navigationSubtitle(households.current?.name ?? "")
+            .navigationSubtitle(summary)
             .toolbar {
+                // The household pill: which home this list belongs to, and the switch.
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        ForEach(households.households) { h in
+                            Button {
+                                households.select(h)
+                            } label: {
+                                if h.id == households.current?.id {
+                                    Label(h.name, systemImage: "checkmark")
+                                } else {
+                                    Text(h.name)
+                                }
+                            }
+                            .accessibilityIdentifier(A11y.listHouseholdOption(h.name))
+                        }
+                        Divider()
+                        Button("Create or join another household", systemImage: "plus") { showOnboarding = true }
+                            .accessibilityIdentifier(A11y.listHouseholdAdd)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "house.fill").font(.caption.weight(.semibold))
+                            Text(households.current?.name ?? "").font(.subheadline.weight(.semibold)).lineLimit(1)
+                            Image(systemName: "chevron.down").font(.caption2.weight(.bold))
+                        }
+                        .padding(.horizontal, 4)
+                    }
+                    .tint(.primary)
+                    .accessibilityLabel("Household: \(households.current?.name ?? "")")
+                    .accessibilityIdentifier(A11y.listHousehold)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     if let code = households.currentCode, let name = households.current?.name {
                         ShareLink(item: inviteMessage(code: code, household: name)) {
@@ -45,6 +76,9 @@ struct ListView: View {
             .sheet(item: $editing) { item in
                 ItemFormSheet(mode: .edit(item)).id("edit-\(item.id)")
             }
+            .sheet(isPresented: $showOnboarding) {
+                OnboardingView(isSheet: true)
+            }
             .alert("Something went wrong", isPresented: Binding(get: { list.error != nil }, set: { if !$0 { list.error = nil } })) {
                 Button("OK") { list.error = nil }
             } message: {
@@ -56,13 +90,25 @@ struct ListView: View {
         }
     }
 
+    /// "6 to buy · 2 in the basket" under the title; the household itself lives in the pill.
+    private var summary: String {
+        let open = list.items.filter { $0.status != .bought }
+        let basket = open.filter { $0.status == .inBasket }.count
+        if open.isEmpty { return "Nothing to buy" }
+        return basket > 0 ? "\(open.count) to buy · \(basket) in the basket" : "\(open.count) to buy"
+    }
+
     // MARK: content
 
     @ViewBuilder
     private func content(for household: Household) -> some View {
         let sections = list.sections
         if list.loading && list.items.isEmpty {
-            ProgressView()
+            BrandMark(style: .bare, spinning: true)
+                .frame(width: 72, height: 72)
+                .accessibilityHidden(false)
+                .accessibilityLabel("Loading")
+                .accessibilityIdentifier(A11y.listLoading)
         } else if sections.isEmpty {
             ScrollView {
                 EmptyState(symbol: "cart.fill", title: "Nothing to buy", text: "Tap + when something runs out at home. Everyone in the household sees it instantly.")
@@ -321,18 +367,24 @@ struct ItemFormSheet: View {
                         }
                         .accessibilityIdentifier(A11y.listInput)
                     ForEach(suggestions) { product in
+                        // The spark marks what the app remembers for you (the "smart" glyph).
                         Button {
                             pick(product)
                         } label: {
-                            HStack {
-                                Label(product.name, systemImage: "clock.arrow.circlepath")
-                                Spacer()
-                                if let unit = product.defaultUnit, !unit.isEmpty {
-                                    Text(unit).foregroundStyle(.secondary)
+                            HStack(spacing: 12) {
+                                SparkGlyph(size: 18)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(product.name)
+                                    if let hint = lastTime(product) {
+                                        Text(hint).font(.caption).foregroundStyle(.secondary)
+                                    }
                                 }
+                                Spacer()
+                                Image(systemName: "arrow.up.left").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
                             }
                         }
                         .tint(.primary)
+                        .accessibilityLabel("\(product.name)\(lastTime(product).map { ", \($0)" } ?? "")")
                         .accessibilityIdentifier(A11y.listSuggestion(product.name))
                     }
                 }
@@ -387,6 +439,18 @@ struct ItemFormSheet: View {
             }
         }
         .presentationDetents([.large])
+    }
+
+    /// "Last time: 2 kg at Costco" from what the product remembers; nil when it remembers nothing.
+    private func lastTime(_ product: CatalogItem) -> String? {
+        let unit = product.defaultUnit?.trimmingCharacters(in: .whitespaces) ?? ""
+        let shop = product.shopId.flatMap { list.shop($0) }?.name
+        switch (unit.isEmpty, shop) {
+        case (false, let s?): return "Last time: \(unit) at \(s)"
+        case (false, nil): return "Last time: \(unit)"
+        case (true, let s?): return "Last time at \(s)"
+        case (true, nil): return nil
+        }
     }
 
     /// A hint fills in what the user left empty; the product stays linked unless the name changes.

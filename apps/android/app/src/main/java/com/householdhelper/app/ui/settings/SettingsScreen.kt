@@ -40,6 +40,19 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsOff
 import com.householdhelper.app.data.PushRegistrar
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material3.Surface
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import com.householdhelper.app.ui.theme.Brand
 import androidx.compose.ui.Modifier
 import com.householdhelper.app.ui.exposeTestTags
 import androidx.compose.ui.platform.LocalContext
@@ -77,12 +90,29 @@ fun SettingsScreen(container: AppContainer, modifier: Modifier = Modifier) {
     var newName by remember { mutableStateOf("") }
     val code = invites.firstOrNull { it.revokedAt == null }?.code
 
-    Scaffold(modifier = modifier, topBar = { TopAppBar(title = { Text("Settings") }) }) { padding ->
+    Scaffold(modifier = modifier, topBar = { TopAppBar(title = { Text("Household") }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) {
-            SectionLabel("Household")
-            ListItem(headlineContent = { Text("Name") }, trailingContent = { Text(current?.name ?: "—") },
-                modifier = Modifier.clickable { newName = current?.name ?: ""; renaming = true }.testTag("settings.name"))
-            ListItem(headlineContent = { Text("Signed in as") }, trailingContent = { Text(container.auth.email ?: "—", modifier = Modifier.testTag("settings.email")) })
+            // The home card: this household, and who you are in it. Tap to rename.
+            Surface(
+                onClick = { newName = current?.name ?: ""; renaming = true },
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).testTag("settings.name"),
+            ) {
+                Row(
+                    Modifier.background(Brush.linearGradient(listOf(Brand.Primary, Brand.PrimaryDeep))).padding(18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.size(52.dp).background(Color.White.copy(alpha = 0.18f), RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Outlined.Home, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(current?.name ?: "—", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                        Text("Signed in as ${container.auth.email ?: "—"}", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.85f), modifier = Modifier.testTag("settings.email"))
+                    }
+                    Icon(Icons.Outlined.Edit, contentDescription = "Rename household", tint = Color.White.copy(alpha = 0.9f))
+                }
+            }
 
             SectionLabel("Invite code")
             Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {

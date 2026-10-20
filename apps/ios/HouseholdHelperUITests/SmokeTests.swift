@@ -86,8 +86,8 @@ final class SmokeTests: XCTestCase {
         wait(app.buttons["shop.row.Chicken breast"])
         app.tabBars.buttons["List"].tap()
 
-        // Settings shows the seeded invite code.
-        app.tabBars.buttons["Settings"].tap()
+        // The Household tab shows the seeded invite code.
+        app.tabBars.buttons["Household"].tap()
         wait(app.staticTexts["settings.inviteCode"])
         XCTAssertTrue(app.staticTexts["settings.inviteCode"].label.replacingOccurrences(of: " ", with: "").contains("MOCK1234"),
                       "invite label: \(app.staticTexts["settings.inviteCode"].label)")

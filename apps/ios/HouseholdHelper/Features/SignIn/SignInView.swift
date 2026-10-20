@@ -20,11 +20,15 @@ struct SignInView: View {
                 ])
                 .ignoresSafeArea()
                 VStack(spacing: 18) {
-                    Image(systemName: "basket.fill")
-                        .font(.system(size: 52, weight: .semibold))
-                        .foregroundStyle(Brand.primaryDeep)
-                        .frame(width: 112, height: 112)
-                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 32, style: .continuous))
+                    // The mark on its dark tile; the rings echo its orbit.
+                    ZStack {
+                        Circle().strokeBorder(.white.opacity(0.14), lineWidth: 1.5).frame(width: 420, height: 420)
+                        Circle().strokeBorder(.white.opacity(0.22), lineWidth: 1.5).frame(width: 300, height: 300)
+                        BrandMark(style: .darkTile)
+                            .frame(width: 124, height: 124)
+                            .shadow(color: .black.opacity(0.35), radius: 18, y: 14)
+                    }
+                    .frame(width: 124, height: 124)
                     Text("Household Helper")
                         .font(.system(size: 34, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
@@ -34,7 +38,6 @@ struct SignInView: View {
                         .multilineTextAlignment(.center)
                 }
                 .padding(.top, 24)
-                .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
             }
             .frame(maxHeight: .infinity)
             .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 36, bottomTrailingRadius: 36, style: .continuous))

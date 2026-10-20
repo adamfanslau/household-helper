@@ -43,7 +43,7 @@ class SmokeTest {
                 runCatching { compose.onNodeWithTag("list").performScrollToNode(hasTestTag("list.item.Oat milk")) }.isSuccess
             }
             compose.onNodeWithTag("list.item.Oat milk").assertIsDisplayed()
-            compose.onNodeWithTag("tab.settings").performClick()
+            compose.onNodeWithTag("tab.household").performClick()
             compose.onNodeWithTag("settings.inviteCode").assertIsDisplayed()
         }
     }

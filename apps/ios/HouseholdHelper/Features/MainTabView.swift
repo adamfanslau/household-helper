@@ -13,7 +13,7 @@ struct MainTabView: View {
             Tab("Shops", systemImage: "storefront", value: AppRouter.Tab.shops) {
                 ShopsView()
             }
-            Tab("Settings", systemImage: "gearshape", value: AppRouter.Tab.settings) {
+            Tab("Household", systemImage: "house.fill", value: AppRouter.Tab.settings) {
                 SettingsView()
             }
         }

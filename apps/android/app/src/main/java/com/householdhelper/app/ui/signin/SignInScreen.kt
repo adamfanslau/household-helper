@@ -30,7 +30,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.filled.ShoppingBasket
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.shadow
+import com.householdhelper.app.ui.BrandMark
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import com.householdhelper.app.ui.theme.Brand
@@ -61,10 +64,11 @@ fun SignInScreen(auth: AuthRepository) {
                 ),
             contentAlignment = Alignment.Center,
         ) {
+            // The rings echo the mark's orbit.
+            Box(Modifier.size(420.dp).border(1.5.dp, Color.White.copy(alpha = 0.14f), CircleShape))
+            Box(Modifier.size(300.dp).border(1.5.dp, Color.White.copy(alpha = 0.22f), CircleShape))
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.statusBarsPadding().padding(24.dp)) {
-                Box(Modifier.size(112.dp).background(Color.White.copy(alpha = 0.85f), RoundedCornerShape(32.dp)), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Filled.ShoppingBasket, contentDescription = null, Modifier.size(52.dp), tint = Brand.PrimaryDeep)
-                }
+                BrandMark(124.dp, Modifier.shadow(18.dp, RoundedCornerShape(34.dp), ambientColor = Color.Black.copy(alpha = 0.4f), spotColor = Color.Black.copy(alpha = 0.4f)))
                 Spacer(Modifier.height(18.dp))
                 Text("Household Helper", style = MaterialTheme.typography.headlineLarge, color = Color.White)
                 Spacer(Modifier.height(8.dp))

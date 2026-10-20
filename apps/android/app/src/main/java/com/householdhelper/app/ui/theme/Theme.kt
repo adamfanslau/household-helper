@@ -27,6 +27,7 @@ private val Light = expressiveLightColorScheme().copy(
     surfaceContainerLow = Color(0xFFEEF4F0),
     surfaceContainer = Color(0xFFEAF1EC),
     surfaceContainerHigh = Color(0xFFE3ECE6),
+    surfaceContainerHighest = Color(0xFFDCE6DF),   // Card default; keeps cards on the green-grey scale
     background = Color(0xFFF7FAF8),
 )
 

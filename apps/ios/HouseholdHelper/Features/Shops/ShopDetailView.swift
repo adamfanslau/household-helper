@@ -18,6 +18,14 @@ struct ShopDetailView: View {
         return open.filter { $0.status == .needed } + open.filter { $0.status == .inBasket }
     }
     private var basketCount: Int { needed.filter { $0.status == .inBasket }.count }
+    private var toFind: [ShoppingListItem] { needed.filter { $0.status == .needed } }
+    private var inBasket: [ShoppingListItem] { needed.filter { $0.status == .inBasket } }
+
+    private var progressText: String {
+        if needed.isEmpty { return "All done here" }
+        if basketCount == 0 { return "\(needed.count) to buy" }
+        return "\(basketCount) of \(needed.count) in the basket · \(toFind.count) left to find"
+    }
 
     /// Shop identity + progress ring, shown above the aisle list.
     private var header: some View {
@@ -26,7 +34,7 @@ struct ShopDetailView: View {
             ShopGlyph(name: shop?.name, size: 56)
             VStack(alignment: .leading, spacing: 4) {
                 Text(shop?.name ?? "Shop").font(.title2.bold())
-                Text(needed.isEmpty ? "All done here" : basketCount > 0 ? "\(basketCount) of \(needed.count) in the basket" : "\(needed.count) to buy")
+                Text(progressText)
                     .font(.subheadline).foregroundStyle(.secondary)
             }
             Spacer()
@@ -43,6 +51,31 @@ struct ShopDetailView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
+    }
+
+    /// One product in the aisle. Default button style: the only kind of row synthetic taps reach (see ListView).
+    private func aisleRow(_ item: ShoppingListItem) -> some View {
+        Button {
+            toggleTick += 1
+            Task { await list.toggle(item) }
+        } label: {
+            HStack(spacing: 12) {
+                CheckMark(status: item.status, tint: Brand.shopColor(shop?.name ?? ""))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(item.name).foregroundStyle(item.status == .inBasket ? .secondary : .primary)
+                    if let qty = item.quantity, !qty.isEmpty {
+                        Chip(text: qty, tint: Brand.shopColor(shop?.name ?? ""))
+                    }
+                }
+                Spacer()
+                if item.status == .needed {
+                    Text("Tap to tick").font(.caption).foregroundStyle(.tertiary)
+                }
+            }
+        }
+        .tint(.primary)
+        .accessibilityIdentifier(A11y.shopRow(item.name))
+        .accessibilityLabel("\(item.name)\(item.quantity.map { ", \($0)" } ?? ""), \(item.status == .inBasket ? "in basket" : "needed")")
     }
 
     var body: some View {
@@ -62,30 +95,20 @@ struct ShopDetailView: View {
                             .listRowInsets(EdgeInsets())
                             .listRowBackground(Color.clear)
                     }
-                    Section {
-                    ForEach(needed) { item in
-                        // Default button style: the only kind of row synthetic taps reach (see ListView).
-                        Button {
-                            toggleTick += 1
-                            Task { await list.toggle(item) }
-                        } label: {
-                            HStack(spacing: 12) {
-                                CheckMark(status: item.status, tint: Brand.shopColor(shop?.name ?? ""))
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(item.name).foregroundStyle(item.status == .inBasket ? .secondary : .primary)
-                                    if let qty = item.quantity, !qty.isEmpty {
-                                        Chip(text: qty, tint: Brand.shopColor(shop?.name ?? ""))
-                                    }
-                                }
-                                Spacer()
-                            }
+                    // The aisle is two piles: what is still to find on top, what is already in the basket below.
+                    if !toFind.isEmpty {
+                        Section {
+                            ForEach(toFind) { item in aisleRow(item) }
+                        } header: {
+                            Text("Still to find")
                         }
-                        .tint(.primary)
-                        .accessibilityIdentifier(A11y.shopRow(item.name))
-                        .accessibilityLabel("\(item.name)\(item.quantity.map { ", \($0)" } ?? ""), \(item.status == .inBasket ? "in basket" : "needed")")
                     }
-                    } header: {
-                        Text(basketCount > 0 ? "\(basketCount) of \(needed.count) in the basket" : "\(needed.count) to buy").textCase(nil)
+                    if !inBasket.isEmpty {
+                        Section {
+                            ForEach(inBasket) { item in aisleRow(item) }
+                        } header: {
+                            Text("In the basket")
+                        }
                     }
                 }
                 .listStyle(.insetGrouped)

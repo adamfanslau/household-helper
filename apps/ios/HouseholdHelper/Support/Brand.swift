@@ -7,8 +7,12 @@ nonisolated enum Brand {
     static let primaryDeep = Color(red: 0.05, green: 0.42, blue: 0.28)    // #0E6B47
     static let mint = Color(red: 0.78, green: 0.95, blue: 0.87)           // #C8F2DD
     static let basket = Color(red: 0.13, green: 0.72, blue: 0.45)         // tick green
+    static let mintBright = Color(red: 0.44, green: 0.85, blue: 0.65)     // #6FD9A6, the mark's roof/spark on dark
+    static let ink = Color(red: 0.06, green: 0.13, blue: 0.10)            // #10201A, the mark's dark tile
+    static let inkSoft = Color(red: 0.12, green: 0.23, blue: 0.17)        // #1E3A2C
 
     static let gradient = LinearGradient(colors: [primary, primaryDeep], startPoint: .topLeading, endPoint: .bottomTrailing)
+    static let inkGradient = LinearGradient(colors: [ink, inkSoft], startPoint: .topLeading, endPoint: .bottomTrailing)
 
     /// Eight vivid-but-soft hues; a shop keeps its colour as long as it keeps its name.
     static let shopPalette: [Color] = [

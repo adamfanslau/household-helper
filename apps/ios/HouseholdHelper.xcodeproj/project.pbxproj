@@ -22,6 +22,7 @@
 		4AD897480FCFF6042CFE9BDB /* HouseholdHelperApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4CF794044E0C727D55823E1 /* HouseholdHelperApp.swift */; };
 		4F0531DD0297563F67FD7EC8 /* A11y.swift in Sources */ = {isa = PBXBuildFile; fileRef = 412FF916C831EDA1DFB452A5 /* A11y.swift */; };
 		50C3D36CD5A33F3EC07C35F7 /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA69E2630E6E1E4FB86B4A9E /* AuthStore.swift */; };
+		5125F7D95DD6EA4950305B4A /* BrandMark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F34D4696F3C8E9B969500C1 /* BrandMark.swift */; };
 		74E7E8494DF5948896D77DBF /* PushPayloadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEE6719BDCAD230CE26448FA /* PushPayloadTests.swift */; };
 		7754B950F19D1EBC44491D70 /* Brand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E424A171B3F4E75A7A877FB /* Brand.swift */; };
 		778AF979A3BCC48FECA4D8D8 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FCA4501FDCF5BA0E53039E0 /* Log.swift */; };
@@ -78,6 +79,7 @@
 		412FF916C831EDA1DFB452A5 /* A11y.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = A11y.swift; sourceTree = "<group>"; };
 		4FCA4501FDCF5BA0E53039E0 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
 		506CF3F5E0864EEF36F8BE74 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		5F34D4696F3C8E9B969500C1 /* BrandMark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandMark.swift; sourceTree = "<group>"; };
 		6231A7E350C5091A7AFA0569 /* EventsClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsClient.swift; sourceTree = "<group>"; };
 		625DFD3608C3259E19BE1BED /* HouseholdHelperUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = HouseholdHelperUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6D00CFBC74412C7D998B0C3D /* ShopDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopDetailView.swift; sourceTree = "<group>"; };
@@ -220,6 +222,7 @@
 			children = (
 				412FF916C831EDA1DFB452A5 /* A11y.swift */,
 				1E424A171B3F4E75A7A877FB /* Brand.swift */,
+				5F34D4696F3C8E9B969500C1 /* BrandMark.swift */,
 				E3EED057290DEAE3924623C4 /* ListGrouping.swift */,
 				4FCA4501FDCF5BA0E53039E0 /* Log.swift */,
 			);
@@ -486,6 +489,7 @@
 				D0824BD08395C50512EDA5C5 /* AppleSignIn.swift in Sources */,
 				50C3D36CD5A33F3EC07C35F7 /* AuthStore.swift in Sources */,
 				7754B950F19D1EBC44491D70 /* Brand.swift in Sources */,
+				5125F7D95DD6EA4950305B4A /* BrandMark.swift in Sources */,
 				3E6A7BE60BA6CB2463B78228 /* Env.swift in Sources */,
 				9518D2B787C53ADC51CAF4E3 /* EventsClient.swift in Sources */,
 				052F773C3925DF83C6C03062 /* FirebaseSetup.swift in Sources */,

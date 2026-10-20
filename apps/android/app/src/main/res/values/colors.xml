@@ -1,3 +1,4 @@
 <resources>
-    <color name="ic_launcher_background">#E6F4FE</color>
+    <!-- Splash background: the list screen's ground, so the launch hands over without a flash. -->
+    <color name="splash_background">#EEF4F0</color>
 </resources>

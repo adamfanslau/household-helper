@@ -58,6 +58,21 @@ struct ShopsView: View {
                                 }
                             }
                         }
+                        Section {
+                            HStack(spacing: 14) {
+                                SparkGlyph(size: 22, tint: Brand.mintBright)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text("Shopping order follows you").font(.subheadline.weight(.semibold))
+                                    Text("Shops with the most left to buy rise to the top, so the next errand is always first.")
+                                        .font(.caption)
+                                        .foregroundStyle(.white.opacity(0.78))
+                                }
+                            }
+                            .foregroundStyle(.white)
+                            .padding(.vertical, 6)
+                            .listRowBackground(Brand.inkGradient)
+                            .accessibilityElement(children: .combine)
+                        }
                     }
                     .listStyle(.insetGrouped)
                     .scrollContentBackground(.hidden)
@@ -68,6 +83,7 @@ struct ShopsView: View {
                 }
             }
             .navigationTitle("Shops")
+            .navigationSubtitle(list.shops.isEmpty ? "" : "Most to buy first")
             .navigationDestination(for: String.self) { shopID in
                 ShopDetailView(shopID: shopID)
             }

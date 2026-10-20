@@ -14,8 +14,12 @@ nonisolated enum A11y {
 
     static let tabList = "tab.list"
     static let tabShops = "tab.shops"
-    static let tabSettings = "tab.settings"
+    static let tabHousehold = "tab.household"
 
+    static let listHousehold = "list.household"        // the household pill (menu) in the List toolbar
+    static func listHouseholdOption(_ name: String) -> String { "list.household.\(name)" }
+    static let listHouseholdAdd = "list.household.add"
+    static let listLoading = "list.loading"
     static let listInput = "list.input"
     static let listAdd = "list.add"              // the floating + button (opens the add sheet)
     static let listQuantity = "list.quantity"
@@ -40,6 +44,8 @@ nonisolated enum A11y {
     static let shopMenu = "shop.menu"
     static func shopRow(_ name: String) -> String { "shop.row.\(name)" }
 
+    static let settingsName = "settings.name"
+    static let settingsMenu = "settings.menu"
     static let settingsInviteCode = "settings.inviteCode"
     static let settingsShare = "settings.share"
     static let settingsSignOut = "settings.signOut"

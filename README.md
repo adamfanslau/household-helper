@@ -69,6 +69,17 @@ vocabulary and the pitfalls. `scripts/dev/realtime.sh` runs the two-device realt
 Before a PR: `make -C apps/api test`, `scripts/dev/ios.sh unit`, `scripts/dev/android.sh unit`; UI
 tests `scripts/dev/ios.sh uitest SmokeTests` and `scripts/dev/android.sh uitest` need the local stack.
 
+## Brand
+
+The mark ("Orbit") is a roof that turns into a tick, with a spark orbiting the house. One 120 × 120
+geometry drives everything: `apps/ios/HouseholdHelper/Support/BrandMark.swift` and
+`apps/android/.../ui/BrandMark.kt` draw it in the apps (sign-in hero, loading indicator, the spark
+as the "smart" glyph on suggestions); `scripts/dev/brandmark.swift <dir>` renders the iOS app-icon
+PNGs (default, dark, tinted) into `Assets.xcassets/AppIcon.appiconset`; the Android adaptive icon is
+the same paths as vector drawables (`res/drawable/ic_launcher_*.xml`, `ic_notification.xml`).
+Colours: Leaf `#17A06A`, Deep `#0E6B47`, Mint `#6FD9A6`, Ink `#10201A` (`Brand.swift` / `Brand.kt`).
+The design canvas (palette, icon set, logo exploration, screen mockups) lives in Claude Design.
+
 ## Deploying
 
 - **API**: `.github/workflows/deploy-api.yml` (copy of `vps/workflows/deploy-go-app.yml`) runs on pushes
