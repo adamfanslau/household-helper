@@ -39,10 +39,10 @@ struct ListView: View {
                 undoToast
             }
             .sheet(isPresented: $showAdd) {
-                ItemFormSheet(mode: .add)
+                ItemFormSheet(mode: .add).id("add")
             }
             .sheet(item: $editing) { item in
-                ItemFormSheet(mode: .edit(item))
+                ItemFormSheet(mode: .edit(item)).id("edit-\(item.id)")
             }
             .alert("Something went wrong", isPresented: Binding(get: { list.error != nil }, set: { if !$0 { list.error = nil } })) {
                 Button("OK") { list.error = nil }
@@ -306,6 +306,12 @@ struct ItemFormSheet: View {
                         .focused($nameFocused)
                         .submitLabel(.done)
                         .onSubmit { if canSubmit { submit() } }
+                        .onChange(of: name) { _, new in
+                            // A hint stays linked only while the name is still the hint's name.
+                            if let p = pickedProduct, p.name.caseInsensitiveCompare(new.trimmingCharacters(in: .whitespaces)) != .orderedSame {
+                                pickedProduct = nil
+                            }
+                        }
                         .accessibilityIdentifier(A11y.listInput)
                     ForEach(suggestions) { product in
                         Button {
@@ -325,6 +331,8 @@ struct ItemFormSheet: View {
                 }
                 Section("Size / quantity") {
                     TextField("e.g. 2, 1 gal, large pack", text: $quantity)
+                        .submitLabel(.done)
+                        .onSubmit { if canSubmit { submit() } }
                         .accessibilityIdentifier(A11y.listQuantity)
                 }
                 Section("Shop") {
@@ -339,6 +347,8 @@ struct ItemFormSheet: View {
                     .accessibilityIdentifier(A11y.listShop)
                     if shopSelection == newShopTag {
                         TextField("Shop name", text: $newShopName)
+                            .submitLabel(.done)
+                            .onSubmit { if canSubmit { submit() } }
                             .accessibilityIdentifier(A11y.listNewShop)
                     }
                 }
@@ -354,11 +364,17 @@ struct ItemFormSheet: View {
                 }
             }
             .onAppear {
+                // Always start clean: nothing from a previous presentation may leak into this one.
+                pickedProduct = nil
+                newShopName = ""
                 if case let .edit(item) = mode {
                     name = item.name
                     quantity = item.quantity ?? ""
                     shopSelection = item.shopId ?? ""
                 } else {
+                    name = ""
+                    quantity = ""
+                    shopSelection = ""
                     nameFocused = true
                 }
             }
@@ -379,7 +395,10 @@ struct ItemFormSheet: View {
         let qty = quantity.trimmingCharacters(in: .whitespaces)
         let shopName = newShopName.trimmingCharacters(in: .whitespacesAndNewlines)
         let selection = shopSelection
-        let product = pickedProduct?.name.caseInsensitiveCompare(itemName) == .orderedSame ? pickedProduct : nil
+        let product: CatalogItem? = {
+            guard let p = pickedProduct, p.name.caseInsensitiveCompare(itemName) == .orderedSame else { return nil }
+            return p
+        }()
         let editing: ShoppingListItem? = { if case let .edit(item) = mode { return item } else { return nil } }()
         dismiss()
         Task {
