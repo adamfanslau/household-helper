@@ -39,7 +39,7 @@ struct ModelsDecodingTests {
 
     @Test func catalogItem() throws {
         let c = try JSON.decode(CatalogItem.self, from: golden("catalog_item"))
-        #expect(c.name == "Milk" && c.defaultUnit == "1 gal")
+        #expect(c.name == "Milk" && c.defaultUnit == "1 gal" && c.householdId == "11111111-1111-4111-8111-111111111111" && c.shopId != nil)
     }
 
     @Test func shoppingListItem() throws {

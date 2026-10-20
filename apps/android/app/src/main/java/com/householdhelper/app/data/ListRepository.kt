@@ -29,6 +29,9 @@ class ListRepository(private val api: ApiClient) {
     val items: StateFlow<List<ShoppingListItem>> = _items
     private val _shops = MutableStateFlow<List<Shop>>(emptyList())
     val shops: StateFlow<List<Shop>> = _shops
+    /** The household's products (typing hints), kept in step over SSE. */
+    private val _products = MutableStateFlow<List<CatalogItem>>(emptyList())
+    val products: StateFlow<List<CatalogItem>> = _products
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading
     val error = MutableStateFlow<String?>(null)
@@ -51,9 +54,11 @@ class ListRepository(private val api: ApiClient) {
             coroutineScope {
                 val i = async { api.get<List<ShoppingListItem>>("/v1/households/$householdId/items") }
                 val s = async { api.get<List<Shop>>("/v1/households/$householdId/shops") }
+                val p = async { api.get<List<CatalogItem>>("/v1/households/$householdId/catalog-items") }
                 val hidden = _pendingDeletes.value.map { it.item.id }.toSet()
                 _items.value = i.await().filter { it.id !in hidden }
                 _shops.value = s.await()
+                _products.value = p.await()
             }
             loadedHouseholdId = householdId
             error.value = null
@@ -73,7 +78,17 @@ class ListRepository(private val api: ApiClient) {
         _pendingDeletes.value = emptyList()
         _items.value = emptyList()
         _shops.value = emptyList()
+        _products.value = emptyList()
         loadedHouseholdId = null
+    }
+
+    /** Products matching what the user typed: prefix matches first, then anywhere in the name. */
+    fun suggestions(query: String, limit: Int = 6): List<CatalogItem> {
+        val q = query.trim().lowercase(); if (q.isEmpty()) return emptyList()
+        val all = _products.value
+        val prefix = all.filter { it.name.lowercase().startsWith(q) }
+        val inside = all.filter { !it.name.lowercase().startsWith(q) && it.name.lowercase().contains(q) }
+        return (prefix + inside).take(limit)
     }
 
     fun shop(id: String?): Shop? = id?.let { s -> _shops.value.firstOrNull { it.id == s } }
@@ -159,13 +174,15 @@ class ListRepository(private val api: ApiClient) {
 
     // MARK: shops
 
-    suspend fun addShop(name: String) {
-        val h = hid ?: return
-        val trimmed = name.trim(); if (trimmed.isEmpty()) return
-        try {
+    suspend fun addShop(name: String): Shop? {
+        val h = hid ?: return null
+        val trimmed = name.trim(); if (trimmed.isEmpty()) return null
+        _shops.value.firstOrNull { it.name.equals(trimmed, ignoreCase = true) }?.let { return it }
+        return try {
             val shop: Shop = api.post("/v1/households/$h/shops", mapOf("name" to trimmed))
             replaceShop(shop)
-        } catch (e: Exception) { error.value = e.message }
+            shop
+        } catch (e: Exception) { error.value = e.message; null }
     }
 
     suspend fun renameShop(shop: Shop, name: String) {
@@ -209,6 +226,14 @@ class ListRepository(private val api: ApiClient) {
             }
             "shops" to "insert", "shops" to "update" -> {
                 runCatching { HHJson.decodeFromJsonElement(Shop.serializer(), change.row) }.getOrNull()?.let { replaceShop(it) }
+            }
+            "catalog_items" to "delete" -> {
+                val id = change.row.jsonObject["id"]?.jsonPrimitive?.content ?: return false
+                _products.update { list -> list.filter { it.id != id } }
+            }
+            "catalog_items" to "insert", "catalog_items" to "update" -> {
+                val row = runCatching { HHJson.decodeFromJsonElement(CatalogItem.serializer(), change.row) }.getOrNull() ?: return false
+                _products.update { list -> (if (list.any { it.id == row.id }) list.map { if (it.id == row.id) row else it } else list + row).sortedBy { it.name.lowercase() } }
             }
         }
         return false

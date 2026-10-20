@@ -30,11 +30,13 @@ final class SmokeTests: XCTestCase {
         wait(item("Milk"))
         shot("01-list")
 
-        // Add "Oat milk" → Unsorted.
+        // Floating + → add sheet → "Oat milk" with no shop → Unsorted.
+        wait(app.buttons["list.add"])
+        app.buttons["list.add"].tap()
         let input = app.textFields["list.input"]
         wait(input)
-        input.tap()
-        input.typeText("Oat milk\n")
+        input.typeText("Oat milk")
+        app.buttons["list.submit"].tap()
         wait(item("Oat milk"))
         shot("02-added")
 
@@ -57,20 +59,22 @@ final class SmokeTests: XCTestCase {
         XCTAssertFalse(item("Oat milk").exists)
         shot("04-deleted")
 
-        // Shops → Trader Joe's → tap Bananas (To list) → back on List: a second Bananas under TJ.
+        // Add sheet with a typing hint: "Chi" suggests Chicken breast (last shop Costco) → under Costco.
+        app.buttons["list.add"].tap()
+        wait(input)
+        input.typeText("Chi")
+        wait(app.buttons["list.suggestion.Chicken breast"])
+        app.buttons["list.suggestion.Chicken breast"].tap()
+        app.buttons["list.submit"].tap()
+        wait(item("Chicken breast"))
+        shot("05-from-hint")
+
+        // Shops → Costco shows it as still needed.
         app.tabBars.buttons["Shops"].tap()
-        wait(app.buttons["shops.row.Trader Joe's"].firstMatch)
-        app.buttons["shops.row.Trader Joe's"].firstMatch.tap()
-        wait(app.buttons["shop.toList.Bananas"])
-        app.buttons["shop.toList.Bananas"].tap()
-        shot("05-to-list")
+        wait(app.buttons["shops.row.Costco"].firstMatch)
+        app.buttons["shops.row.Costco"].firstMatch.tap()
+        wait(app.buttons["shop.row.Chicken breast"])
         app.tabBars.buttons["List"].tap()
-        let bananas = app.buttons.matching(identifier: "list.item.Bananas")
-        let deadline = Date().addingTimeInterval(10)
-        while bananas.count < 2 && Date() < deadline {
-            RunLoop.current.run(until: Date().addingTimeInterval(0.5))
-        }
-        XCTAssertGreaterThanOrEqual(bananas.count, 2, "To list should add a second Bananas under Trader Joe's")
 
         // Settings shows the seeded invite code.
         app.tabBars.buttons["Settings"].tap()

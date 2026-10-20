@@ -21,6 +21,10 @@ scripts/dev/ios.sh build                   # Debug = emulator auth + localhost A
 scripts/dev/ios.sh install "$U"
 scripts/dev/ios.sh launch "$U" alice householdhelper://list   # auto sign-in as alice (dev builds only)
 scripts/dev/ios.sh tree "$U" | grep list.item               # id | label | type | x,y,w,h
+scripts/dev/ios.sh tap "$U" list.add                         # floating + → add sheet
+scripts/dev/ios.sh type "$U" "Chi"; scripts/dev/ios.sh tap "$U" "list.suggestion.Chicken breast"   # typing hints fill qty + shop
+scripts/dev/ios.sh menu "$U" list.shop; scripts/dev/ios.sh label "$U" "New shop…"               # shop picker (menu opens from its trailing edge)
+scripts/dev/ios.sh tap "$U" list.newShop; scripts/dev/ios.sh type "$U" "Lidl"; scripts/dev/ios.sh tap "$U" list.submit
 scripts/dev/ios.sh label "$U" Settings                       # tabs have no identifier: tap by label
 scripts/dev/snap.sh ios "$U" settings                        # .dev/shots/settings/{screen.png,tree.txt,log.txt}
 scripts/dev/assert.sh tree settings 'settings.signOut'
@@ -45,8 +49,8 @@ config change. Light/dark and text size: `ios.sh appearance "$U" dark`, `ios.sh 
 `signin.dev.alice|bob`, `onboarding.mode` (segmented: tap by label "Create"/"Join"), `onboarding.input`,
 `onboarding.submit`, tabs by label (`ios.sh label "$U" List|Shops|Settings`), `list.item.<name>`, `list.bought.toggle`,
 `list.input`, `list.add`, `list.item.<name>` (tap = toggle), `list.item.<name>.bought|.delete` (swipe buttons),
-`list.bought.toggle`, `list.bought.menu`, `list.undo`, `edit.name|quantity|save`, `shops.input`, `shops.add`,
-`shops.row.<name>`, `shop.input`, `shop.add`, `shop.menu`, `shop.row.<name>` (text), `shop.toList.<name>` (row button),
+`list.bought.toggle`, `list.bought.menu`, `list.undo`, `shops.input`, `shops.add`,
+`shops.row.<name>`, `shop.menu`, `shop.row.<name>` (needed item row, tap = bought),
 `settings.inviteCode`, `settings.share`, `settings.regenerate`, `settings.addHousehold`,
 `settings.household.<name>`, `settings.signOut`, `settings.signOut.confirm`, `connection.reconnecting`.
 
@@ -55,6 +59,12 @@ config change. Light/dark and text size: `ios.sh appearance "$U" dark`, `ios.sh 
 carol has no household (onboarding flows; `launch "$U" carol`). alice owns "Mock Household" (`11111111-1111-4111-8111-111111111111`, invite `MOCK1234`): Trader Joe's
 (Milk 1 gal, Bananas), Costco (Paper towels), Unsorted (Batteries), bought: Eggs. bob owns "The
 Neighbors" (`JOIN5678`) and must join `MOCK1234` to see the list.
+
+Add/edit sheet (`list.add` opens it; context menu › Edit reuses it): `list.input` (product, typing hints
+appear as `list.suggestion.<name>`), `list.quantity`, `list.shop` (menu picker: shops + "New shop…"),
+`list.newShop`, `list.submit`. Shop detail is the shop's needed items: `shop.row.<name>` (tap = bought),
+`shop.menu` (Rename / Delete shop). There is no per-shop catalog any more: products are household-wide
+and remember the last quantity and shop as hints.
 
 ## Gotchas
 

@@ -98,8 +98,3 @@ func (s *Server) publishTo(r *http.Request, hid, table, typ string, row any) {
 type idRow struct {
 	ID string `json:"id"`
 }
-
-type catalogDeleteRow struct {
-	ID     string `json:"id"`
-	ShopID string `json:"shop_id"`
-}

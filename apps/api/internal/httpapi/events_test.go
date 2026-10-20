@@ -146,11 +146,19 @@ func TestEventsStream(t *testing.T) {
 	}
 	next(t, frames, "ping") // heartbeat arrives on its own
 
-	// A change by B is delivered to A's stream after commit, with the actor.
+	// A change by B is delivered to A's stream after commit, with the actor. Adding by name
+	// first creates the product, so a catalog_items insert precedes the item insert.
 	var item store.ListItem
 	e.expect(201, "b", "POST", "/v1/households/"+h.ID+"/items", `{"name":"Coffee"}`, &item)
 	f := next(t, frames, "change")
 	var ev sse.Event
+	if err := json.Unmarshal([]byte(f.Data), &ev); err != nil {
+		t.Fatalf("change data %q: %v", f.Data, err)
+	}
+	if ev.Table != "catalog_items" || ev.Type != "insert" || ev.Actor != "b" {
+		t.Fatalf("product event %+v", ev)
+	}
+	f = next(t, frames, "change")
 	if err := json.Unmarshal([]byte(f.Data), &ev); err != nil {
 		t.Fatalf("change data %q: %v", f.Data, err)
 	}

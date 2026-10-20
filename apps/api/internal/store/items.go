@@ -82,18 +82,26 @@ func shopInHousehold(ctx context.Context, q querier, hid, shopID string) error {
 	return nil
 }
 
-// CreateItem adds a list item. A catalog reference must belong to a shop of the
-// household; it supplies the shop and, when the client sent no quantity, the
-// catalog default_unit (the Expo app dropped it). Returns created=false when the
-// client id already exists in this household (idempotent retry).
-func (db *DB) CreateItem(ctx context.Context, hid, uid string, in NewItem) (ListItem, bool, error) {
-	var out ListItem
-	created := true
+// ItemCreated is the result of CreateItem: the list item plus the product it was linked to
+// (found or created by name) so the caller can publish the catalog change too.
+type ItemCreated struct {
+	Item           ListItem
+	Created        bool // false when the client id already existed (idempotent retry)
+	Catalog        *CatalogItem
+	CatalogCreated bool
+}
+
+// CreateItem adds a list item and keeps the household's product catalog in step: the item is
+// linked to the product of the same name (created on first use), which remembers the shop
+// and quantity just used; a catalog reference supplies those when the client sent none.
+func (db *DB) CreateItem(ctx context.Context, hid, uid string, in NewItem) (ItemCreated, error) {
+	var res ItemCreated
+	res.Created = true
 	err := db.Tx(ctx, func(tx *sql.Tx) error {
 		if in.ID != "" {
 			existing, err := db.getItem(ctx, tx, hid, in.ID)
 			if err == nil {
-				out, created = existing, false
+				res.Item, res.Created = existing, false
 				return nil
 			}
 			if !errors.Is(err, ErrNotFound) {
@@ -101,44 +109,48 @@ func (db *DB) CreateItem(ctx context.Context, hid, uid string, in NewItem) (List
 			}
 		}
 		shopID, qty := in.ShopID, in.Quantity
+		if shopID != nil {
+			if err := shopInHousehold(ctx, tx, hid, *shopID); err != nil {
+				return err
+			}
+		}
+		name := in.Name
 		if in.CatalogItemID != nil {
-			var catShop string
-			var unit sql.NullString
-			err := tx.QueryRowContext(ctx, `SELECT c.shop_id, c.default_unit FROM catalog_items c JOIN shops s ON s.id = c.shop_id
-				WHERE c.id = ? AND s.household_id = ?`, *in.CatalogItemID, hid).Scan(&catShop, &unit)
-			if errors.Is(err, sql.ErrNoRows) {
+			c, err := db.getCatalogItem(ctx, tx, hid, *in.CatalogItemID)
+			if errors.Is(err, ErrNotFound) {
 				return ErrInvalid
 			}
 			if err != nil {
 				return err
 			}
+			name = c.Name
 			if shopID == nil {
-				shopID = &catShop
-			} else if *shopID != catShop {
-				return ErrInvalid
+				shopID = c.ShopID
 			}
-			if qty == nil && unit.Valid && unit.String != "" {
-				qty = &unit.String
-			}
-		} else if shopID != nil {
-			if err := shopInHousehold(ctx, tx, hid, *shopID); err != nil {
-				return err
+			if qty == nil && c.DefaultUnit != nil && *c.DefaultUnit != "" {
+				qty = c.DefaultUnit
 			}
 		}
+		// Link to the product of that name (created on first use) and remember what was used.
+		c, catCreated, err := db.upsertCatalogItem(ctx, tx, hid, name, qty, shopID)
+		if err != nil {
+			return err
+		}
+		res.Catalog, res.CatalogCreated = &c, catCreated
+		name = c.Name // the product's spelling wins ("oat MILK" -> "Oat milk")
 		id := in.ID
 		if id == "" {
 			id = ids.New()
 		}
 		now := Now()
 		if _, err := tx.ExecContext(ctx, `INSERT INTO shopping_list_items (id, household_id, name, shop_id, catalog_item_id, quantity, status, added_by, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, 'needed', ?, ?, ?)`, id, hid, in.Name, nullStr(shopID), nullStr(in.CatalogItemID), nullStr(qty), uid, now, now); err != nil {
+			VALUES (?, ?, ?, ?, ?, ?, 'needed', ?, ?, ?)`, id, hid, name, nullStr(shopID), c.ID, nullStr(qty), uid, now, now); err != nil {
 			return err
 		}
-		var err error
-		out, err = db.getItem(ctx, tx, hid, id)
+		res.Item, err = db.getItem(ctx, tx, hid, id)
 		return err
 	})
-	return out, created, err
+	return res, err
 }
 
 // ItemPatch: Name/Status replace when non-nil; Quantity/ShopID are nullable optionals.

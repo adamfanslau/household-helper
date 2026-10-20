@@ -8,6 +8,7 @@
 #   ios.sh tree <udid>                   accessibility tree: id | label | type | x,y,w,h
 #   ios.sh tap <udid> <id | x y>         tap by accessibilityIdentifier or point
 #   ios.sh label <udid> "<label>"        tap by accessibility label
+#   ios.sh menu <udid> <id>              open a menu-style Picker (taps its trailing edge; then `label` an option)
 #   ios.sh longpress <udid> <id>
 #   ios.sh type <udid> "text"
 #   ios.sh swipe <udid> up|down|left|right [id]
@@ -99,7 +100,17 @@ case "$cmd" in
   tap)
     [ $# -ge 2 ] || usage; udid="$1"; shift
     if [ $# -eq 2 ]; then axe tap -x "$1" -y "$2" --udid "$udid" >/dev/null && echo "tapped $1,$2"
-    else axe tap --id "$1" --udid "$udid" >/dev/null && echo "tapped $1"; fi ;;
+    else
+      # Toolbar items expose the identifier on a Group and its Button: prefer the Button.
+      out=$(axe tap --id "$1" --udid "$udid" 2>&1) && { echo "tapped $1"; exit 0; }
+      if echo "$out" | grep -q "Multiple"; then axe tap --id "$1" --element-type Button --udid "$udid" >/dev/null && echo "tapped $1 (button)"
+      else echo "$out" >&2; exit 1; fi
+    fi ;;
+  menu)
+    [ $# -eq 2 ] || usage; udid="$1"
+    fr=$(axe describe-ui --udid "$udid" 2>/dev/null | jq -r --arg id "$2" 'def walk(n): n, (n.children[]? | walk(.)); [.[] | walk(.)] | map(select(.AXUniqueId == $id)) | .[0].frame // empty | "\(.x + .width - 24 | floor) \(.y + .height/2 | floor)"')
+    [ -n "$fr" ] || die "no element $2"
+    axe tap -x "${fr%% *}" -y "${fr##* }" --udid "$udid" >/dev/null && echo "opened menu $2" ;;
   label) [ $# -eq 2 ] || usage; axe tap --label "$2" --udid "$1" >/dev/null && echo "tapped label $2" ;;
   longpress)
     [ $# -eq 2 ] || usage

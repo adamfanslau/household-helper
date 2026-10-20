@@ -1,13 +1,12 @@
 import SwiftUI
 
 /// The home screen: needed items grouped by shop, Unsorted last, "Recently bought" collapsible,
-/// add bar pinned above the keyboard, swipe + context-menu actions, undo on delete.
+/// a floating + that opens the add sheet, swipe + context-menu actions, undo on delete.
 struct ListView: View {
     @Environment(HouseholdStore.self) private var households
     @Environment(ListStore.self) private var list
     @State private var showBought = false
-    @State private var draft = ""
-    @FocusState private var addFocused: Bool
+    @State private var showAdd = false
     @State private var editing: ShoppingListItem?
     @State private var toggleTick = 0
     @State private var deleteTick = 0
@@ -33,14 +32,17 @@ struct ListView: View {
                     }
                 }
             }
-            .safeAreaBar(edge: .bottom) {
-                addBar
+            .overlay(alignment: .bottomTrailing) {
+                addButton
             }
             .overlay(alignment: .bottom) {
                 undoToast
             }
+            .sheet(isPresented: $showAdd) {
+                ItemFormSheet(mode: .add)
+            }
             .sheet(item: $editing) { item in
-                EditItemSheet(item: item)
+                ItemFormSheet(mode: .edit(item))
             }
             .alert("Something went wrong", isPresented: Binding(get: { list.error != nil }, set: { if !$0 { list.error = nil } })) {
                 Button("OK") { list.error = nil }
@@ -178,38 +180,23 @@ struct ListView: View {
             }
     }
 
-    // MARK: add bar
+    // MARK: add button
 
-    private var addBar: some View {
-        HStack(spacing: 10) {
-            TextField("Add something we ran out of…", text: $draft)
-                .textFieldStyle(.roundedBorder)
-                .submitLabel(.done)
-                .focused($addFocused)
-                .onSubmit { submit(keepFocus: true) }
-                .accessibilityIdentifier(A11y.listInput)
-            Button {
-                submit(keepFocus: false)
-            } label: {
-                Image(systemName: "plus")
-                    .font(.title3.weight(.semibold))
-                    .frame(width: 24, height: 24)
-            }
-            .buttonStyle(.glassProminent)
-            .disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty)
-            .accessibilityLabel("Add item")
-            .accessibilityIdentifier(A11y.listAdd)
+    /// The one call to action: a floating + above the tab bar, always one tap away.
+    private var addButton: some View {
+        Button {
+            showAdd = true
+        } label: {
+            Image(systemName: "plus")
+                .font(.title2.weight(.semibold))
+                .frame(width: 56, height: 56)
         }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-    }
-
-    private func submit(keepFocus: Bool) {
-        let name = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else { return }
-        draft = ""
-        addFocused = keepFocus
-        Task { await list.add(name: name) }
+        .buttonStyle(.glassProminent)
+        .buttonBorderShape(.circle)
+        .padding(.trailing, 20)
+        .padding(.bottom, 16)
+        .accessibilityLabel("Add to the list")
+        .accessibilityIdentifier(A11y.listAdd)
     }
 
     // MARK: undo
@@ -286,40 +273,128 @@ struct ItemRow: View {
     }
 }
 
-/// Name + quantity editor (context menu › Edit).
-struct EditItemSheet: View {
+/// Add (floating +) and edit (context menu › Edit): product with typing hints from the household's
+/// products, size/quantity, and a shop picker that can create a shop on the spot.
+struct ItemFormSheet: View {
+    enum Mode { case add, edit(ShoppingListItem) }
+
     @Environment(ListStore.self) private var list
     @Environment(\.dismiss) private var dismiss
-    let item: ShoppingListItem
+    let mode: Mode
     @State private var name = ""
     @State private var quantity = ""
+    @State private var shopSelection = ""      // "" = not sure yet, shop id, or newShopTag
+    @State private var newShopName = ""
+    @State private var pickedProduct: CatalogItem?
+    @FocusState private var nameFocused: Bool
+    private let newShopTag = "__new__"
+
+    private var isEdit: Bool { if case .edit = mode { return true } else { return false } }
+    private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var suggestions: [CatalogItem] {
+        list.suggestions(for: name).filter { $0.name.caseInsensitiveCompare(trimmedName) != .orderedSame }
+    }
+    private var canSubmit: Bool {
+        !trimmedName.isEmpty && (shopSelection != newShopTag || !newShopName.trimmingCharacters(in: .whitespaces).isEmpty)
+    }
 
     var body: some View {
         NavigationStack {
             Form {
-                TextField("Name", text: $name)
-                    .accessibilityIdentifier(A11y.editName)
-                TextField("Quantity (optional)", text: $quantity)
-                    .accessibilityIdentifier(A11y.editQuantity)
+                Section("Product") {
+                    TextField("What ran out?", text: $name)
+                        .focused($nameFocused)
+                        .submitLabel(.done)
+                        .onSubmit { if canSubmit { submit() } }
+                        .accessibilityIdentifier(A11y.listInput)
+                    ForEach(suggestions) { product in
+                        Button {
+                            pick(product)
+                        } label: {
+                            HStack {
+                                Label(product.name, systemImage: "clock.arrow.circlepath")
+                                Spacer()
+                                if let unit = product.defaultUnit, !unit.isEmpty {
+                                    Text(unit).foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        .tint(.primary)
+                        .accessibilityIdentifier(A11y.listSuggestion(product.name))
+                    }
+                }
+                Section("Size / quantity") {
+                    TextField("e.g. 2, 1 gal, large pack", text: $quantity)
+                        .accessibilityIdentifier(A11y.listQuantity)
+                }
+                Section("Shop") {
+                    Picker("Shop", selection: $shopSelection) {
+                        Text("Not sure yet").tag("")
+                        ForEach(list.shops) { shop in
+                            Text(shop.name).tag(shop.id)
+                        }
+                        Label("New shop…", systemImage: "plus").tag(newShopTag)
+                    }
+                    .pickerStyle(.menu)
+                    .accessibilityIdentifier(A11y.listShop)
+                    if shopSelection == newShopTag {
+                        TextField("Shop name", text: $newShopName)
+                            .accessibilityIdentifier(A11y.listNewShop)
+                    }
+                }
             }
-            .navigationTitle("Edit item")
+            .navigationTitle(isEdit ? "Edit item" : "Add to the list")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        Task { await list.edit(item, name: name, quantity: quantity) }
-                        dismiss()
-                    }
-                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
-                    .accessibilityIdentifier(A11y.editSave)
+                    Button(isEdit ? "Save" : "Add") { submit() }
+                        .disabled(!canSubmit)
+                        .accessibilityIdentifier(A11y.listSubmit)
                 }
             }
             .onAppear {
-                name = item.name
-                quantity = item.quantity ?? ""
+                if case let .edit(item) = mode {
+                    name = item.name
+                    quantity = item.quantity ?? ""
+                    shopSelection = item.shopId ?? ""
+                } else {
+                    nameFocused = true
+                }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.large])
+    }
+
+    /// A hint fills in what the user left empty; the product stays linked unless the name changes.
+    private func pick(_ product: CatalogItem) {
+        name = product.name
+        pickedProduct = product
+        if quantity.isEmpty, let unit = product.defaultUnit { quantity = unit }
+        if shopSelection.isEmpty, let shop = product.shopId, list.shop(shop) != nil { shopSelection = shop }
+    }
+
+    private func submit() {
+        let itemName = trimmedName
+        let qty = quantity.trimmingCharacters(in: .whitespaces)
+        let shopName = newShopName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let selection = shopSelection
+        let product = pickedProduct?.name.caseInsensitiveCompare(itemName) == .orderedSame ? pickedProduct : nil
+        let editing: ShoppingListItem? = { if case let .edit(item) = mode { return item } else { return nil } }()
+        dismiss()
+        Task {
+            var shopID: String? = selection.isEmpty ? nil : selection
+            if selection == newShopTag {
+                shopID = await list.addShop(name: shopName)?.id
+            }
+            if let item = editing {
+                await list.edit(item, name: itemName, quantity: qty.isEmpty ? nil : qty)
+                if item.shopId != shopID, let current = list.items.first(where: { $0.id == item.id }) {
+                    await list.move(current, toShop: shopID)
+                }
+            } else {
+                await list.add(name: itemName, shopID: shopID, catalogItemID: product?.id, quantity: qty.isEmpty ? nil : qty)
+            }
+        }
     }
 }

@@ -52,7 +52,8 @@ data class Shop(
 @Serializable
 data class CatalogItem(
     val id: String,
-    val shopId: String,
+    val householdId: String,
+    val shopId: String? = null,   // last shop used (hint)
     val name: String,
     val defaultUnit: String? = null,
     val createdAt: String,

@@ -22,9 +22,10 @@ func (s *Server) routes(v1 *http.ServeMux) {
 	v1.HandleFunc("GET /v1/households/{hid}/shops/{shopId}", s.member(s.getShop))
 	v1.HandleFunc("PATCH /v1/households/{hid}/shops/{shopId}", s.member(s.patchShop))
 	v1.HandleFunc("DELETE /v1/households/{hid}/shops/{shopId}", s.member(s.deleteShop))
-	v1.HandleFunc("GET /v1/households/{hid}/shops/{shopId}/catalog-items", s.member(s.listCatalog))
-	v1.HandleFunc("POST /v1/households/{hid}/shops/{shopId}/catalog-items", s.member(s.createCatalogItem))
-	v1.HandleFunc("DELETE /v1/households/{hid}/shops/{shopId}/catalog-items/{itemId}", s.member(s.deleteCatalogItem))
+	v1.HandleFunc("GET /v1/households/{hid}/catalog-items", s.member(s.listCatalog))
+	v1.HandleFunc("POST /v1/households/{hid}/catalog-items", s.member(s.upsertCatalogItem))
+	v1.HandleFunc("PATCH /v1/households/{hid}/catalog-items/{itemId}", s.member(s.patchCatalogItem))
+	v1.HandleFunc("DELETE /v1/households/{hid}/catalog-items/{itemId}", s.member(s.deleteCatalogItem))
 
 	v1.HandleFunc("GET /v1/households/{hid}/items", s.member(s.listItems))
 	v1.HandleFunc("POST /v1/households/{hid}/items", s.member(s.createItem))

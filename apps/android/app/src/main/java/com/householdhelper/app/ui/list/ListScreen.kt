@@ -33,6 +33,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -103,7 +104,7 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
     val pending by container.list.pendingDeletes.collectAsStateWithLifecycle()
     val invites by container.households.invites.collectAsStateWithLifecycle()
     var showBought by remember { mutableStateOf(false) }
-    var draft by remember { mutableStateOf("") }
+    var showAdd by remember { mutableStateOf(false) }
     var sheetItem by remember { mutableStateOf<ShoppingListItem?>(null) }
     var editing by remember { mutableStateOf<ShoppingListItem?>(null) }
     var refreshing by remember { mutableStateOf(false) }
@@ -120,12 +121,6 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
     val sections = remember(items, shops) { ListGrouping.sections(items, shops) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val code = invites.firstOrNull { it.revokedAt == null }?.code
-
-    fun submit() {
-        val name = draft.trim(); if (name.isEmpty()) return
-        draft = ""
-        scope.launch { container.list.add(name) }
-    }
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -148,23 +143,10 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
             )
         },
         snackbarHost = { SnackbarHost(snackbar, Modifier.testTag("snackbar")) },
-        bottomBar = {
-            // Add bar pinned above the keyboard (imePadding) and the navigation bar.
-            Surface(tonalElevation = 3.dp, modifier = Modifier.imePadding()) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = draft, onValueChange = { draft = it },
-                        placeholder = { Text("Add something we ran out of…") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { submit() }),
-                        modifier = Modifier.weight(1f).testTag("list.input"),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    FilledIconButton(onClick = { submit() }, enabled = draft.isNotBlank(), shapes = IconButtonDefaults.shapes(), modifier = Modifier.testTag("list.add")) {
-                        Icon(Icons.Outlined.Add, contentDescription = "Add item")
-                    }
-                }
+        floatingActionButton = {
+            // The one call to action: a floating + that opens the add sheet.
+            FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.testTag("list.add")) {
+                Icon(Icons.Outlined.Add, contentDescription = "Add to the list")
             }
         },
     ) { padding ->
@@ -260,6 +242,8 @@ fun ListScreen(container: AppContainer, modifier: Modifier = Modifier) {
             Spacer(Modifier.padding(16.dp))
         }
     }
+
+    if (showAdd) AddItemSheet(container, scope, onDismiss = { showAdd = false })
 
     editing?.let { item ->
         var name by remember(item.id) { mutableStateOf(item.name) }

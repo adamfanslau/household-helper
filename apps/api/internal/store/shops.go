@@ -18,9 +18,12 @@ type Shop struct {
 	NeededCount int    `json:"needed_count"` // computed: list items with status=needed in this shop
 }
 
+// CatalogItem is a household's product: what was bought before, with the last quantity
+// (default_unit) and last shop as hints for the next time. Not tied to a shop.
 type CatalogItem struct {
 	ID          string  `json:"id"`
-	ShopID      string  `json:"shop_id"`
+	HouseholdID string  `json:"household_id"`
+	ShopID      *string `json:"shop_id"`
 	Name        string  `json:"name"`
 	DefaultUnit *string `json:"default_unit"`
 	CreatedAt   string  `json:"created_at"`
@@ -111,66 +114,6 @@ func (db *DB) UpdateShop(ctx context.Context, hid, id string, p ShopPatch) (Shop
 // DeleteShop removes the shop; its catalog cascades and list items keep existing with shop_id NULL (Unsorted).
 func (db *DB) DeleteShop(ctx context.Context, hid, id string) error {
 	res, err := db.W.ExecContext(ctx, `DELETE FROM shops WHERE id = ? AND household_id = ?`, id, hid)
-	if err != nil {
-		return err
-	}
-	if n, _ := res.RowsAffected(); n == 0 {
-		return ErrNotFound
-	}
-	return nil
-}
-
-const catalogCols = `c.id, c.shop_id, c.name, c.default_unit, c.created_at, c.updated_at`
-
-func scanCatalog(row interface{ Scan(...any) error }) (CatalogItem, error) {
-	var c CatalogItem
-	var unit sql.NullString
-	err := row.Scan(&c.ID, &c.ShopID, &c.Name, &unit, &c.CreatedAt, &c.UpdatedAt)
-	c.DefaultUnit = ptrS(unit)
-	if errors.Is(err, sql.ErrNoRows) {
-		return c, ErrNotFound
-	}
-	return c, err
-}
-
-// ListCatalog returns a shop's catalog sorted by name; ErrNotFound when the shop is not in hid.
-func (db *DB) ListCatalog(ctx context.Context, hid, shopID string) ([]CatalogItem, error) {
-	if _, err := db.GetShop(ctx, hid, shopID); err != nil {
-		return nil, err
-	}
-	rows, err := db.R.QueryContext(ctx, `SELECT `+catalogCols+` FROM catalog_items c WHERE c.shop_id = ? ORDER BY c.name COLLATE NOCASE, c.id`, shopID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	out := []CatalogItem{}
-	for rows.Next() {
-		c, err := scanCatalog(rows)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, c)
-	}
-	return out, rows.Err()
-}
-
-func (db *DB) CreateCatalogItem(ctx context.Context, hid, shopID, name string, unit *string) (CatalogItem, error) {
-	now := Now()
-	c := CatalogItem{ID: ids.New(), ShopID: shopID, Name: name, DefaultUnit: unit, CreatedAt: now, UpdatedAt: now}
-	err := db.Tx(ctx, func(tx *sql.Tx) error {
-		if _, err := db.getShop(ctx, tx, hid, shopID); err != nil {
-			return err
-		}
-		_, err := tx.ExecContext(ctx, `INSERT INTO catalog_items (id, shop_id, name, default_unit, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
-			c.ID, shopID, name, nullStr(unit), now, now)
-		return err
-	})
-	return c, err
-}
-
-func (db *DB) DeleteCatalogItem(ctx context.Context, hid, shopID, id string) error {
-	res, err := db.W.ExecContext(ctx, `DELETE FROM catalog_items WHERE id = ? AND shop_id = ?
-		AND shop_id IN (SELECT id FROM shops WHERE household_id = ?)`, id, shopID, hid)
 	if err != nil {
 		return err
 	}

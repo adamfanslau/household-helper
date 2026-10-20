@@ -15,7 +15,11 @@ var migrationFS embed.FS
 
 // Migrate applies every migrations/NNNN_*.sql not yet recorded in schema_migrations.
 // It is idempotent and safe to run on every start.
-func (db *DB) Migrate(ctx context.Context) error {
+func (db *DB) Migrate(ctx context.Context) error { return db.migrateUpTo(ctx, 0) }
+
+// migrateUpTo applies migrations with version <= max (0 = all); tests use it to build
+// an older schema and then migrate real rows forward.
+func (db *DB) migrateUpTo(ctx context.Context, max int) error {
 	if _, err := db.W.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS schema_migrations (
 		version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT NOT NULL)`); err != nil {
 		return err
@@ -40,7 +44,7 @@ func (db *DB) Migrate(ctx context.Context) error {
 		if err := db.W.QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations WHERE version = ?`, version).Scan(&n); err != nil {
 			return err
 		}
-		if n > 0 {
+		if n > 0 || (max > 0 && version > max) {
 			continue
 		}
 		body, err := migrationFS.ReadFile("migrations/" + name)

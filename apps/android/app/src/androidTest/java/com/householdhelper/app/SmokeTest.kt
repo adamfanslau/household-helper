@@ -34,8 +34,10 @@ class SmokeTest {
         ActivityScenario.launch<MainActivity>(intent).use {
             compose.waitUntil(20_000) { compose.onAllNodes(hasTestTag("list.item.Milk")).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithTag("list.item.Milk").assertIsDisplayed()
-            compose.onNodeWithTag("list.input").performTextInput("Oat milk")
             compose.onNodeWithTag("list.add").performClick()
+            compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("list.input")).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("list.input").performTextInput("Oat milk")
+            compose.onNodeWithTag("list.submit").performClick()
             // The new row lands in Unsorted at the bottom; with the keyboard up it is outside the lazy viewport.
             compose.waitUntil(10_000) {
                 runCatching { compose.onNodeWithTag("list").performScrollToNode(hasTestTag("list.item.Oat milk")) }.isSuccess

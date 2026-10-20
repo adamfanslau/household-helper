@@ -56,6 +56,8 @@ import androidx.compose.material3.SwipeToDismissBoxDefaults
 import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
+import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.ui.Modifier
 import com.householdhelper.app.ui.exposeTestTags
 import androidx.compose.ui.platform.testTag
@@ -168,7 +170,7 @@ private fun ShopsListScreen(container: AppContainer, onOpen: (Shop) -> Unit) {
             modifier = Modifier.exposeTestTags(),
             onDismissRequest = { pendingDelete = null },
             title = { Text("Delete ${shop.name}?") },
-            text = { Text("Its catalog is removed. Items on the list move to Unsorted.") },
+            text = { Text("Items on the list move to Unsorted; your products keep their history.") },
             confirmButton = { TextButton(onClick = { pendingDelete = null; scope.launch { container.list.deleteShop(shop) } }, modifier = Modifier.testTag("shops.delete.confirm")) { Text("Delete", color = MaterialTheme.colorScheme.error) } },
             dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("Cancel") } },
         )
@@ -179,33 +181,14 @@ private fun ShopsListScreen(container: AppContainer, onOpen: (Shop) -> Unit) {
 @Composable
 fun ShopDetailScreen(container: AppContainer, shopId: String, onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
-    val household by container.households.current.collectAsStateWithLifecycle()
     val shops by container.list.shops.collectAsStateWithLifecycle()
+    val items by container.list.items.collectAsStateWithLifecycle()
     val shop = shops.firstOrNull { it.id == shopId }
-    val catalog = remember(household?.id, shopId) { household?.let { com.householdhelper.app.data.CatalogRepository(container.api, it.id, shopId) } }
-    val items by (catalog?.items ?: kotlinx.coroutines.flow.MutableStateFlow(emptyList())).collectAsStateWithLifecycle()
-    val loaded by (catalog?.loaded ?: kotlinx.coroutines.flow.MutableStateFlow(false)).collectAsStateWithLifecycle()
-    val eventsState by container.events.state.collectAsStateWithLifecycle()
-    val pending by (catalog?.pendingDeletes ?: kotlinx.coroutines.flow.MutableStateFlow(emptyList())).collectAsStateWithLifecycle()
-    val catalogError by (catalog?.error ?: kotlinx.coroutines.flow.MutableStateFlow<String?>(null)).collectAsStateWithLifecycle()
-    val snackbar = remember { SnackbarHostState() }
-    var draft by remember { mutableStateOf("") }
-    var added by remember { mutableStateOf(setOf<String>()) }
+    val needed = remember(items) { items.filter { it.shopId == shopId && !it.isBought } }
     var menu by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf("") }
-
-    LaunchedEffect(catalog) { catalog?.load() }
-    LaunchedEffect(eventsState) { if (eventsState == com.householdhelper.app.data.EventsClient.State.CONNECTED) catalog?.load() }
-    LaunchedEffect(catalogError) { catalogError?.let { snackbar.showSnackbar(it); catalog?.error?.value = null } }
-    LaunchedEffect(pending.lastOrNull()?.item?.id) {
-        val p = pending.lastOrNull() ?: return@LaunchedEffect
-        val result = snackbar.showSnackbar("Deleted ${p.item.name}", actionLabel = "Undo", duration = SnackbarDuration.Indefinite) // cancelled with the grace period
-        if (result == SnackbarResult.ActionPerformed) catalog?.undoDelete(p.item.id)
-    }
-
-    fun add() { val n = draft.trim(); if (n.isEmpty()) return; draft = ""; scope.launch { catalog?.add(n) } }
 
     Scaffold(
         topBar = {
@@ -221,66 +204,25 @@ fun ShopDetailScreen(container: AppContainer, shopId: String, onBack: () -> Unit
                 },
             )
         },
-        bottomBar = {
-            Surface(tonalElevation = 3.dp, modifier = Modifier.imePadding()) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(draft, { draft = it }, placeholder = { Text("Add an item this shop sells") }, singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done), keyboardActions = KeyboardActions(onDone = { add() }),
-                        modifier = Modifier.weight(1f).testTag("shop.input"))
-                    Spacer(Modifier.width(8.dp))
-                    FilledIconButton(onClick = { add() }, enabled = draft.isNotBlank(), shapes = IconButtonDefaults.shapes(), modifier = Modifier.testTag("shop.add")) {
-                        Icon(Icons.Outlined.Add, contentDescription = "Add catalog item")
-                    }
-                }
-            }
-        },
-        snackbarHost = { SnackbarHost(snackbar, modifier = Modifier.testTag("snackbar")) },
     ) { padding ->
-        if (loaded && items.isEmpty()) {
+        if (needed.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("No items for this shop yet", style = MaterialTheme.typography.titleMedium)
-                    Text("Add the things you usually buy here.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Outlined.Inventory2, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Nothing to buy here", style = MaterialTheme.typography.titleMedium)
+                    Text("Items you add for ${shop?.name ?: "this shop"} show up here.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else LazyColumn(Modifier.fillMaxSize().padding(padding)) {
-            items(items, key = { it.id }) { item ->
-                val isAdded = item.id in added
-                val current by rememberUpdatedState(item)
-                val density = LocalDensity.current
-                val threshold = SwipeToDismissBoxDefaults.positionalThreshold
-                // Not rememberSaveable: a row restored by Undo must not inherit its dismissed state (see ListScreen.SwipeRow).
-                val state = remember(item.id) {
-                    SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, density, confirmValueChange = { v -> if (v == SwipeToDismissBoxValue.EndToStart) { catalog?.delete(current); true } else false }, positionalThreshold = threshold)
-                }
-                SwipeToDismissBox(
-                    state = state, enableDismissFromStartToEnd = false, modifier = Modifier.animateItem(),
-                    backgroundContent = {
-                        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.errorContainer).padding(horizontal = 24.dp), contentAlignment = Alignment.CenterEnd) {
-                            Icon(Icons.Outlined.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onErrorContainer)
-                        }
-                    },
-                ) {
-                    ListItem(
-                        headlineContent = { Text(item.name) },
-                        supportingContent = item.defaultUnit?.takeIf { it.isNotBlank() }?.let { { Text(it) } },
-                        trailingContent = {
-                            Surface(shape = MaterialTheme.shapes.extraLarge, color = if (isAdded) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.primaryContainer) {
-                                Text(if (isAdded) "✓ Added" else "+ To list", style = MaterialTheme.typography.labelLarge,
-                                    color = if (isAdded) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
-                            }
-                        },
-                        modifier = Modifier.clickable(enabled = !isAdded) {
-                            added = added + item.id
-                            scope.launch {
-                                container.list.add(item.name, shopId = shopId, catalogItemId = item.id)
-                                kotlinx.coroutines.delay(1500)
-                                added = added - item.id
-                            }
-                        }.semantics(mergeDescendants = true) { contentDescription = "${item.name}, add to list" }.testTag("shop.toList.${item.name}"),
-                    )
-                }
+            items(needed, key = { it.id }) { item ->
+                ListItem(
+                    headlineContent = { Text(item.name) },
+                    supportingContent = item.quantity?.takeIf { it.isNotBlank() }?.let { { Text(it) } },
+                    leadingContent = { Icon(Icons.Outlined.RadioButtonUnchecked, contentDescription = null) },
+                    modifier = Modifier.animateItem().clickable { scope.launch { container.list.toggle(item) } }
+                        .semantics(mergeDescendants = true) { contentDescription = "${item.name}${item.quantity?.let { ", $it" } ?: ""}, needed" }
+                        .testTag("shop.row.${item.name}"),
+                )
             }
         }
     }
@@ -294,7 +236,7 @@ fun ShopDetailScreen(container: AppContainer, shopId: String, onBack: () -> Unit
     if (confirmDelete) AlertDialog(
         modifier = Modifier.exposeTestTags(),
         onDismissRequest = { confirmDelete = false }, title = { Text("Delete ${shop?.name ?: "shop"}?") },
-        text = { Text("Its catalog is removed. Items on the list move to Unsorted.") },
+        text = { Text("Items on the list move to Unsorted; your products keep their history.") },
         confirmButton = { TextButton(onClick = { confirmDelete = false; shop?.let { s -> scope.launch { container.list.deleteShop(s) }; onBack() } }) { Text("Delete", color = MaterialTheme.colorScheme.error) } },
         dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
     )

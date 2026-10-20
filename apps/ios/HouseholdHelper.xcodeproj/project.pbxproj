@@ -30,7 +30,6 @@
 		88632B1B7E23F3408193A7E6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7CC8AB9348E67354590B31D /* SettingsView.swift */; };
 		8D67BCE1F787AD4CBA51F7BB /* ModelsDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0693D8F932E2207B9FBF0D3 /* ModelsDecodingTests.swift */; };
 		91D9FD690220BE0A65A57A1F /* ChangeApplyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051899AED856674E3CCC9169 /* ChangeApplyTests.swift */; };
-		948B148CA9E44C637DF32FA9 /* CatalogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C65DD9F3D7BC9D3C53075B9C /* CatalogStore.swift */; };
 		9518D2B787C53ADC51CAF4E3 /* EventsClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6231A7E350C5091A7AFA0569 /* EventsClient.swift */; };
 		A9679BFF659FA60FB0856901 /* golden in Resources */ = {isa = PBXBuildFile; fileRef = E96388D4658AAD5827760FD1 /* golden */; };
 		A9A71962A4ADD743B2A10403 /* ShopsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC6196A0DDF7938627E03912 /* ShopsView.swift */; };
@@ -93,7 +92,6 @@
 		ABC55EE6C5AA2E179B9A1203 /* FirebaseSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseSetup.swift; sourceTree = "<group>"; };
 		B014D2BB531604FF8A0A6634 /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
 		B4CF794044E0C727D55823E1 /* HouseholdHelperApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HouseholdHelperApp.swift; sourceTree = "<group>"; };
-		C65DD9F3D7BC9D3C53075B9C /* CatalogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogStore.swift; sourceTree = "<group>"; };
 		CFDB63CBD2A4F39BDE7C7B39 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D5C8402ABEF483F16AC6D60E /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		DA69E2630E6E1E4FB86B4A9E /* AuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStore.swift; sourceTree = "<group>"; };
@@ -174,7 +172,6 @@
 			isa = PBXGroup;
 			children = (
 				DA69E2630E6E1E4FB86B4A9E /* AuthStore.swift */,
-				C65DD9F3D7BC9D3C53075B9C /* CatalogStore.swift */,
 				F999C51523C9092848F67CF5 /* HouseholdStore.swift */,
 				29A2826C4C7401A3BAE29A4E /* ListStore.swift */,
 			);
@@ -485,7 +482,6 @@
 				455EC0520D2639B68F2B1867 /* AppRouter.swift in Sources */,
 				D0824BD08395C50512EDA5C5 /* AppleSignIn.swift in Sources */,
 				50C3D36CD5A33F3EC07C35F7 /* AuthStore.swift in Sources */,
-				948B148CA9E44C637DF32FA9 /* CatalogStore.swift in Sources */,
 				3E6A7BE60BA6CB2463B78228 /* Env.swift in Sources */,
 				9518D2B787C53ADC51CAF4E3 /* EventsClient.swift in Sources */,
 				052F773C3925DF83C6C03062 /* FirebaseSetup.swift in Sources */,

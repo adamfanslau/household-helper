@@ -64,19 +64,26 @@ func (s *Server) createItem(w http.ResponseWriter, r *http.Request) {
 		invalid(w, "invalid item", fields)
 		return
 	}
-	item, created, err := s.db.CreateItem(r.Context(), r.PathValue("hid"), principal(r).UID, store.NewItem{
+	res, err := s.db.CreateItem(r.Context(), r.PathValue("hid"), principal(r).UID, store.NewItem{
 		ID: in.ID, Name: name, ShopID: in.ShopID, CatalogItemID: in.CatalogItemID, Quantity: qty,
 	})
 	if err != nil {
 		s.fail(w, err, "")
 		return
 	}
-	if created {
-		s.publish(r, "shopping_list_items", "insert", item)
-		writeJSON(w, http.StatusCreated, item)
+	if res.Created {
+		if res.Catalog != nil {
+			typ := "update"
+			if res.CatalogCreated {
+				typ = "insert"
+			}
+			s.publish(r, "catalog_items", typ, *res.Catalog)
+		}
+		s.publish(r, "shopping_list_items", "insert", res.Item)
+		writeJSON(w, http.StatusCreated, res.Item)
 		return
 	}
-	writeJSON(w, http.StatusOK, item) // idempotent retry with the same client id
+	writeJSON(w, http.StatusOK, res.Item) // idempotent retry with the same client id
 }
 
 func (s *Server) patchItem(w http.ResponseWriter, r *http.Request) {

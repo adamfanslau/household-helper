@@ -15,7 +15,7 @@ log "alice on iOS, bob on Android (bob joins MOCK1234 through the API)"
 "$S/android.sh" tap tab.settings >/dev/null; sleep 1; "$S/android.sh" tap "settings.household.Mock Household" >/dev/null 2>&1 || true; "$S/android.sh" tap tab.list >/dev/null; sleep 2
 
 log "alice adds 'Oat milk' on iOS → must appear on Android within 5 s"
-"$S/ios.sh" tap "$UDID_IPHONE17" list.input >/dev/null; sleep 0.5; "$S/ios.sh" type "$UDID_IPHONE17" "Oat milk" >/dev/null; "$S/ios.sh" tap "$UDID_IPHONE17" list.add >/dev/null; sleep 5
+"$S/ios.sh" tap "$UDID_IPHONE17" list.add >/dev/null; sleep 1.5; "$S/ios.sh" type "$UDID_IPHONE17" "Oat milk" >/dev/null; "$S/ios.sh" tap "$UDID_IPHONE17" list.submit >/dev/null; sleep 5
 "$S/android.sh" tree | grep -q "list.item.Oat milk" && pass "android shows Oat milk" || fail "android missing Oat milk"
 
 log "bob marks it bought on Android → iOS shows it under Recently bought within 5 s"

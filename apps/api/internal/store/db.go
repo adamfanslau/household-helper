@@ -38,6 +38,19 @@ type DB struct {
 
 // Open opens (creating if needed) the database at path and applies migrations.
 func Open(ctx context.Context, path string) (*DB, error) {
+	db, err := openNoMigrate(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	if err := db.Migrate(ctx); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("migrate: %w", err)
+	}
+	return db, nil
+}
+
+// openNoMigrate opens the pools without touching the schema (tests build older schemas).
+func openNoMigrate(ctx context.Context, path string) (*DB, error) {
 	dsn := func(txlock string) string {
 		q := url.Values{}
 		q.Add("_pragma", "busy_timeout(5000)")
@@ -66,10 +79,6 @@ func Open(ctx context.Context, path string) (*DB, error) {
 	if err := db.Ping(ctx); err != nil {
 		db.Close()
 		return nil, err
-	}
-	if err := db.Migrate(ctx); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("migrate: %w", err)
 	}
 	return db, nil
 }

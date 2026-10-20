@@ -8,6 +8,8 @@ import Observation
 final class ListStore {
     private(set) var items: [ShoppingListItem] = []
     private(set) var shops: [Shop] = []
+    /// The household's products (typing hints), kept in step over SSE.
+    private(set) var products: [CatalogItem] = []
     private(set) var loading = false
     private(set) var loadedHouseholdID: String?
     var error: String?
@@ -44,10 +46,12 @@ final class ListStore {
         do {
             async let i: [ShoppingListItem] = api.get("/v1/households/\(householdID)/items")
             async let s: [Shop] = api.get("/v1/households/\(householdID)/shops")
-            let (loadedItems, loadedShops) = try await (i, s)
+            async let p: [CatalogItem] = api.get("/v1/households/\(householdID)/catalog-items")
+            let (loadedItems, loadedShops, loadedProducts) = try await (i, s, p)
             let hidden = Set(pendingDeletes.map(\.id))
             items = loadedItems.filter { !hidden.contains($0.id) }
             shops = loadedShops
+            products = loadedProducts
             loadedHouseholdID = householdID
             error = nil
             Log.api.info("list loaded: \(self.items.count) items, \(self.shops.count) shops")
@@ -66,7 +70,17 @@ final class ListStore {
         pendingDeletes = []
         items = []
         shops = []
+        products = []
         loadedHouseholdID = nil
+    }
+
+    /// Products matching what the user typed: prefix matches first, then anywhere in the name.
+    func suggestions(for query: String, limit: Int = 6) -> [CatalogItem] {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty else { return [] }
+        let prefix = products.filter { $0.name.lowercased().hasPrefix(q) }
+        let inside = products.filter { !$0.name.lowercased().hasPrefix(q) && $0.name.lowercased().contains(q) }
+        return Array((prefix + inside).prefix(limit))
     }
 
     // MARK: items
@@ -206,15 +220,19 @@ final class ListStore {
 
     // MARK: shops
 
-    func addShop(name: String) async {
-        guard let hid else { return }
+    @discardableResult
+    func addShop(name: String) async -> Shop? {
+        guard let hid else { return nil }
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        guard !trimmed.isEmpty else { return nil }
+        if let existing = shops.first(where: { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) { return existing }
         do {
             let shop: Shop = try await api.post("/v1/households/\(hid)/shops", ["name": trimmed])
             if !shops.contains(where: { $0.id == shop.id }) { shops.append(shop) }
+            return shop
         } catch {
             self.error = error.localizedDescription
+            return nil
         }
     }
 
@@ -270,6 +288,13 @@ final class ListStore {
             return true
         case ("shops", _):
             if let row = try? JSON.decode(Shop.self, from: data) { replaceShop(row) }
+        case ("catalog_items", "delete"):
+            if let id = change.row["id"]?.stringValue { products.removeAll { $0.id == id } }
+        case ("catalog_items", _):
+            if let row = try? JSON.decode(CatalogItem.self, from: data) {
+                if let i = products.firstIndex(where: { $0.id == row.id }) { products[i] = row } else { products.append(row) }
+                products.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            }
         default:
             break
         }

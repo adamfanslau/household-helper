@@ -44,9 +44,11 @@ nonisolated struct Shop: Codable, Identifiable, Hashable, Sendable {
     var neededCount: Int
 }
 
+/// A household's product: last quantity (defaultUnit) and last shop are hints for the next add.
 nonisolated struct CatalogItem: Codable, Identifiable, Hashable, Sendable {
     let id: String
-    let shopId: String
+    let householdId: String
+    var shopId: String?
     var name: String
     var defaultUnit: String?
     let createdAt: Date

@@ -57,30 +57,48 @@ func TestShopsAndCatalog(t *testing.T) {
 	code, body = e.as("a", "PATCH", base+"/shops/"+costco.ID, `{"name":null}`, nil)
 	e.want(400, code, body)
 
-	// Catalog: scoped through the shop.
+	// Products: household-wide, keyed by name (case-insensitive), shop/quantity are hints.
 	var milk, eggs store.CatalogItem
-	e.expect(201, "a", "POST", base+"/shops/"+tj.ID+"/catalog-items", `{"name":"Milk","default_unit":"1 gal"}`, &milk)
-	e.expect(201, "a", "POST", base+"/shops/"+tj.ID+"/catalog-items", `{"name":"Eggs"}`, &eggs)
-	if milk.ShopID != tj.ID || milk.DefaultUnit == nil || *milk.DefaultUnit != "1 gal" || eggs.DefaultUnit != nil {
+	e.expect(201, "a", "POST", base+"/catalog-items", `{"name":"Milk","default_unit":"1 gal","shop_id":"`+tj.ID+`"}`, &milk)
+	e.expect(201, "a", "POST", base+"/catalog-items", `{"name":"Eggs"}`, &eggs)
+	if milk.HouseholdID != h.ID || milk.ShopID == nil || *milk.ShopID != tj.ID || *milk.DefaultUnit != "1 gal" || eggs.ShopID != nil || eggs.DefaultUnit != nil {
 		t.Fatalf("catalog: %+v %+v", milk, eggs)
 	}
-	code, body = e.as("a", "POST", base+"/shops/"+cshop.ID+"/catalog-items", `{"name":"Nope"}`, nil)
-	e.want(404, code, body)
-	code, body = e.as("c", "GET", base+"/shops/"+tj.ID+"/catalog-items", "", nil)
+	var again store.CatalogItem
+	e.expect(200, "a", "POST", base+"/catalog-items", `{"name":"milk","default_unit":"2 gal"}`, &again) // same product, hint updated
+	if again.ID != milk.ID || *again.DefaultUnit != "2 gal" || *again.ShopID != tj.ID {
+		t.Fatalf("upsert: %+v", again)
+	}
+	code, body = e.as("a", "POST", base+"/catalog-items", `{"name":"Nope","shop_id":"`+cshop.ID+`"}`, nil)
+	e.want(400, code, body)
+	code, body = e.as("c", "GET", base+"/catalog-items", "", nil)
 	e.want(404, code, body)
 	var cat []store.CatalogItem
-	e.expect(200, "b", "GET", base+"/shops/"+tj.ID+"/catalog-items", "", &cat)
+	e.expect(200, "b", "GET", base+"/catalog-items", "", &cat)
 	if len(cat) != 2 || cat[0].Name != "Eggs" || cat[1].Name != "Milk" {
 		t.Fatalf("catalog sorted by name: %+v", cat)
 	}
-	// Deleting a catalog item through the wrong shop is a 404; through its own shop works.
-	code, body = e.as("a", "DELETE", base+"/shops/"+costco.ID+"/catalog-items/"+eggs.ID, "", nil)
+	var patched store.CatalogItem
+	e.expect(200, "a", "PATCH", base+"/catalog-items/"+eggs.ID, `{"shop_id":"`+costco.ID+`","default_unit":"12"}`, &patched)
+	if *patched.ShopID != costco.ID || *patched.DefaultUnit != "12" {
+		t.Fatalf("patch: %+v", patched)
+	}
+	code, body = e.as("a", "PATCH", base+"/catalog-items/"+eggs.ID, `{"name":"Milk"}`, nil) // name taken
+	e.want(409, code, body)
+	code, body = e.as("c", "DELETE", base+"/catalog-items/"+eggs.ID, "", nil)
 	e.want(404, code, body)
-	code, body = e.as("a", "DELETE", base+"/shops/"+tj.ID+"/catalog-items/"+eggs.ID, "", nil)
+	code, body = e.as("a", "DELETE", base+"/catalog-items/"+eggs.ID, "", nil)
 	e.want(204, code, body)
-	e.expect(200, "a", "GET", base+"/shops/"+tj.ID+"/catalog-items", "", &cat)
+	e.expect(200, "a", "GET", base+"/catalog-items", "", &cat)
 	if len(cat) != 1 {
 		t.Fatalf("after delete: %+v", cat)
+	}
+	// Deleting a shop only clears the hint.
+	code, body = e.as("a", "DELETE", base+"/shops/"+tj.ID, "", nil)
+	e.want(204, code, body)
+	e.expect(200, "a", "GET", base+"/catalog-items", "", &cat)
+	if len(cat) != 1 || cat[0].ShopID != nil {
+		t.Fatalf("shop delete should clear the hint: %+v", cat)
 	}
 }
 
@@ -93,29 +111,51 @@ func TestItems(t *testing.T) {
 	e.expect(201, "a", "POST", base+"/shops", `{"name":"Costco"}`, &costco)
 	e.expect(201, "c", "POST", "/v1/households/"+other.ID+"/shops", `{"name":"C Shop"}`, &cshop)
 	var milk store.CatalogItem
-	e.expect(201, "a", "POST", base+"/shops/"+tj.ID+"/catalog-items", `{"name":"Milk","default_unit":"1 gal"}`, &milk)
+	e.expect(201, "a", "POST", base+"/catalog-items", `{"name":"Milk","default_unit":"1 gal","shop_id":"`+tj.ID+`"}`, &milk)
 
-	// Plain add: Unsorted, needed, added_by from the token, never from the body.
+	// Plain add: Unsorted, needed, added_by from the token, never from the body; a product
+	// of that name is created and linked.
 	var oat store.ListItem
 	e.expect(201, "b", "POST", base+"/items", `{"name":" Oat milk ","added_by":"a"}`, &oat)
-	if oat.Name != "Oat milk" || oat.ShopID != nil || oat.Status != "needed" || oat.AddedBy == nil || *oat.AddedBy != "b" || oat.BoughtAt != nil {
+	if oat.Name != "Oat milk" || oat.ShopID != nil || oat.Status != "needed" || oat.AddedBy == nil || *oat.AddedBy != "b" || oat.BoughtAt != nil || oat.CatalogItemID == nil {
 		t.Fatalf("oat: %+v", oat)
 	}
-	// From the catalog: shop and quantity come from the catalog item.
+	var cat []store.CatalogItem
+	e.expect(200, "a", "GET", base+"/catalog-items", "", &cat)
+	if len(cat) != 2 || cat[1].Name != "Oat milk" || cat[1].ID != *oat.CatalogItemID {
+		t.Fatalf("product auto-created: %+v", cat)
+	}
+	// By name, with a shop and quantity: the product remembers both as hints.
+	var oat2 store.ListItem
+	e.expect(201, "b", "POST", base+"/items", `{"name":"oat MILK","shop_id":"`+costco.ID+`","quantity":"2"}`, &oat2)
+	if oat2.Name != "Oat milk" || *oat2.CatalogItemID != *oat.CatalogItemID {
+		t.Fatalf("same product by name: %+v", oat2)
+	}
+	e.expect(200, "a", "GET", base+"/catalog-items", "", &cat)
+	if *cat[1].ShopID != costco.ID || *cat[1].DefaultUnit != "2" {
+		t.Fatalf("hints not remembered: %+v", cat[1])
+	}
+	// From the catalog: shop and quantity come from the product's hints.
 	var fromCat store.ListItem
 	e.expect(201, "a", "POST", base+"/items", `{"name":"Milk","catalog_item_id":"`+milk.ID+`"}`, &fromCat)
 	if fromCat.ShopID == nil || *fromCat.ShopID != tj.ID || fromCat.Quantity == nil || *fromCat.Quantity != "1 gal" || fromCat.CatalogItemID == nil {
 		t.Fatalf("from catalog: %+v", fromCat)
 	}
+	// Explicit values win and become the new hints.
 	var explicit store.ListItem
-	e.expect(201, "a", "POST", base+"/items", `{"name":"Milk","catalog_item_id":"`+milk.ID+`","quantity":"2 gal"}`, &explicit)
-	if *explicit.Quantity != "2 gal" {
-		t.Fatalf("explicit quantity lost: %+v", explicit)
+	e.expect(201, "a", "POST", base+"/items", `{"name":"Milk","catalog_item_id":"`+milk.ID+`","quantity":"2 gal","shop_id":"`+costco.ID+`"}`, &explicit)
+	if *explicit.Quantity != "2 gal" || *explicit.ShopID != costco.ID {
+		t.Fatalf("explicit values lost: %+v", explicit)
+	}
+	var milkNow store.CatalogItem
+	e.expect(200, "a", "POST", base+"/catalog-items", `{"name":"Milk"}`, &milkNow)
+	if *milkNow.ShopID != costco.ID || *milkNow.DefaultUnit != "2 gal" {
+		t.Fatalf("milk hints: %+v", milkNow)
 	}
 	// Cross-household references are 400, not silently accepted.
 	code, body := e.as("a", "POST", base+"/items", `{"name":"X","shop_id":"`+cshop.ID+`"}`, nil)
 	e.want(400, code, body)
-	code, body = e.as("a", "POST", base+"/items", `{"name":"X","catalog_item_id":"`+milk.ID+`","shop_id":"`+costco.ID+`"}`, nil)
+	code, body = e.as("a", "POST", base+"/items", `{"name":"X","catalog_item_id":"00000000-0000-4000-8000-000000000000"}`, nil)
 	e.want(400, code, body)
 	code, body = e.as("a", "POST", base+"/items", `{"name":"X","id":"not-a-uuid"}`, nil)
 	e.want(400, code, body)
@@ -134,7 +174,7 @@ func TestItems(t *testing.T) {
 	// needed_count on shops.
 	var shops []store.Shop
 	e.expect(200, "b", "GET", base+"/shops", "", &shops)
-	if shops[0].NeededCount != 2 || shops[1].NeededCount != 0 {
+	if shops[0].NeededCount != 1 || shops[1].NeededCount != 2 { // Milk from hints at TJ; Oat milk + explicit Milk at Costco
 		t.Fatalf("needed_count: %+v", shops)
 	}
 
@@ -174,7 +214,7 @@ func TestItems(t *testing.T) {
 	e.expect(200, "a", "PATCH", base+"/items/"+explicit.ID, `{"status":"bought"}`, nil)
 	var items []store.ListItem
 	e.expect(200, "b", "GET", base+"/items", "", &items)
-	if len(items) != 4 {
+	if len(items) != 5 { // Oat milk x2, Milk x2 (bought), Coffee
 		t.Fatalf("list: %d", len(items))
 	}
 	code, body = e.as("a", "DELETE", base+"/items", "", nil)
@@ -182,11 +222,11 @@ func TestItems(t *testing.T) {
 	code, body = e.as("a", "DELETE", base+"/items?status=bought", "", nil)
 	e.want(204, code, body)
 	e.expect(200, "b", "GET", base+"/items", "", &items)
-	if len(items) != 2 || items[0].Status != "needed" || items[1].Status != "needed" {
+	if len(items) != 3 || items[0].Status != "needed" || items[1].Status != "needed" || items[2].Status != "needed" {
 		t.Fatalf("after clear: %+v", items)
 	}
 
-	// Delete an item; deleting a shop un-sorts its items and drops its catalog.
+	// Delete an item; deleting a shop un-sorts its items.
 	code, body = e.as("b", "DELETE", base+"/items/"+first.ID, "", nil)
 	e.want(204, code, body)
 	code, body = e.as("b", "DELETE", base+"/items/"+first.ID, "", nil)
@@ -204,7 +244,7 @@ func TestItems(t *testing.T) {
 	if bananas.ID == "" || bananas.ShopID != nil {
 		t.Fatalf("shop delete should unsort: %+v", bananas)
 	}
-	code, body = e.as("a", "GET", base+"/shops/"+tj.ID+"/catalog-items", "", nil)
+	code, body = e.as("a", "GET", base+"/shops/"+tj.ID, "", nil)
 	e.want(404, code, body)
 	if !strings.Contains(body, "no such shop") {
 		t.Fatalf("body: %s", body)

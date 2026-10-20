@@ -14,9 +14,11 @@ Prereqs: local stack up (`scripts/dev/stack.sh up`; the app reaches it on the de
 scripts/dev/android.sh build                       # ./gradlew :app:installDevDebug, prints BUILD OK
 scripts/dev/android.sh launch alice                # force-stop + start with HH_UITEST_USER (dev flavor)
 scripts/dev/android.sh wait list.item.Milk 20      # poll the tree until the tag exists (after launch/animations)
-scripts/dev/android.sh tap list.input; scripts/dev/android.sh type "Oat milk"; scripts/dev/android.sh tap list.add
-scripts/dev/android.sh back                        # dismiss the keyboard, it covers the lower half of the list
-scripts/dev/android.sh wait "list.item.Oat milk"
+scripts/dev/android.sh tap list.add; scripts/dev/android.sh wait list.input      # floating + → add sheet
+scripts/dev/android.sh type "Chi"; scripts/dev/android.sh tap "list.suggestion.Chicken breast"   # hints fill qty + shop
+scripts/dev/android.sh tap list.shop; scripts/dev/android.sh tap list.shop.new; scripts/dev/android.sh tap list.newShop
+scripts/dev/android.sh type "Lidl"; scripts/dev/android.sh key KEYCODE_ENTER     # Done submits (never `back`: it closes the sheet)
+scripts/dev/android.sh wait "list.item.Chicken breast"
 scripts/dev/snap.sh android add-item               # .dev/shots/add-item/{screen.png,tree.txt,log.txt}
 scripts/dev/assert.sh api alice /v1/households/11111111-1111-4111-8111-111111111111/items '.[] | select(.name=="Oat milk") | .shop_id == null'
 ```
@@ -47,9 +49,10 @@ like a tap on the launcher icon (session + household must survive).
 `signin.dev.alice|bob`, `signin.google`, `onboarding.sheet`, `onboarding.mode.create|join`, `onboarding.input`,
 `onboarding.submit`, `tab.list|shops|settings`, `list`, `list.input`, `list.add`, `list.section.<name>`,
 `list.item.<name>`, `list.bought.toggle`, `list.bought.menu`, `list.bought.clear`, `list.share`, `list.empty`,
+`list.addSheet`, `list.quantity`, `list.shop`, `list.shop.none|<name>|new`, `list.newShop`, `list.submit`, `list.suggestion.<name>`,
 `item.sheet`, `item.move.<shop>|Unsorted`, `item.edit`, `item.toggle`, `item.delete`, `edit.name`, `edit.quantity`,
-`edit.save`, `shops.input`, `shops.add`, `shops.row.<name>`, `shops.delete.confirm`, `shop.input`, `shop.add`,
-`shop.toList.<name>`, `shop.menu`, `shop.rename.input`, `settings.name`, `settings.email`, `settings.inviteCode`,
+`edit.save`, `shops.input`, `shops.add`, `shops.row.<name>`, `shops.delete.confirm`,
+`shop.row.<name>`, `shop.menu`, `shop.rename.input`, `settings.name`, `settings.email`, `settings.inviteCode`,
 `settings.share`, `settings.regenerate`, `settings.household.<name>`, `settings.addHousehold`, `settings.rename.input`,
 `settings.notifications`, `settings.signOut`, `settings.signOut.confirm`, `connection.reconnecting`, `snackbar`.
 
@@ -60,7 +63,9 @@ Deep links: `householdhelper://list | shops | shops/<uuid> | settings | join/<CO
 - Play-Store AVD: no `adb root`; read state via logcat and the API, not the filesystem.
 - Sheets, dialogs and dropdown menus are separate windows: their tags show up only because each one
   carries `Modifier.exposeTestTags()` (ui/Semantics.kt). Add it to any new sheet/dialog/popup.
-- The keyboard stays open after `type`; `back` once before tapping anything in the lower half.
+- The keyboard stays open after `type`; on the list screen `back` once before tapping the lower half,
+  but inside the add sheet `back` dismisses the sheet: use `key KEYCODE_ENTER` (Done submits) instead.
+- Products are household-wide (typing hints with last quantity/shop); shop detail shows the shop's needed items.
 - `uiautomator dump` waits for an idle UI; `wait`/`waittext` poll instead of fixed sleeps. `taptext` must
   run while the snackbar (5 s undo grace) is still showing.
 - Settings is a scrolling list; `swipe up` before `settings.signOut` at large font scales.

@@ -31,7 +31,7 @@ func TestGolden(t *testing.T) {
 		"household":    store.Household{ID: hid, Name: "Mock Household", CreatedBy: str("dev-alice"), CreatedAt: ts, UpdatedAt: ts, Role: "owner"},
 		"invite":       store.Invite{ID: "66666666-6666-4666-8666-000000000001", HouseholdID: hid, Code: "MOCK1234", CreatedBy: str("dev-alice"), CreatedAt: ts},
 		"shop":         store.Shop{ID: sid, HouseholdID: hid, Name: "Trader Joe's", SortOrder: 0, CreatedAt: ts, UpdatedAt: ts, NeededCount: 2},
-		"catalog_item": store.CatalogItem{ID: cid, ShopID: sid, Name: "Milk", DefaultUnit: str("1 gal"), CreatedAt: ts, UpdatedAt: ts},
+		"catalog_item": store.CatalogItem{ID: cid, HouseholdID: hid, ShopID: str(sid), Name: "Milk", DefaultUnit: str("1 gal"), CreatedAt: ts, UpdatedAt: ts},
 		"shopping_list_item": store.ListItem{ID: "55555555-5555-4555-8555-000000000001", HouseholdID: hid, Name: "Milk", ShopID: str(sid), CatalogItemID: str(cid),
 			Quantity: str("1 gal"), Status: "bought", AddedBy: str("dev-alice"), CreatedAt: ts, UpdatedAt: ts, BoughtAt: str(ts)},
 		"sse_change": sse.Event{ID: "0199c700-0000-7000-8000-000000000001", Table: "shopping_list_items", Type: "update", Actor: "dev-bob",
